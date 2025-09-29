@@ -1,0 +1,141 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model Workflow {
+    id          String   @id @default(uuid())
+    name        String
+    description String?
+    enabled     Boolean  @default(true)
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+
+    triggers   Trigger[]
+    nodes      Node[]
+    executions Execution[]
+    node_edges NodeEdge[]
+
+    @@map("workflows")
+}
+
+model Trigger {
+    id            String   @id @default(uuid())
+    workflow_id   String
+    name          String?
+    type          String
+    configuration Json
+    created_at    DateTime @default(now())
+
+    workflow   Workflow    @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    executions Execution[]
+
+    @@map("triggers")
+}
+
+model Node {
+    id          String   @id @default(uuid())
+    workflow_id String
+    type        String
+    name        String
+    created_at  DateTime @default(now())
+
+    workflow   Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    outgoing   NodeEdge[]         @relation("SourceNode")
+    incoming   NodeEdge[]         @relation("TargetNode")
+    actionNode ActionNode[]
+    condition  ConditionalNode[]
+    logs       NodeExecutionLog[]
+
+    @@map("nodes")
+}
+
+model NodeEdge {
+    id             String  @id @default(uuid())
+    workflow_id    String
+    source_node_id String
+    target_node_id String
+    edge_type      String  @default("normal")
+    condition      String?
+
+    workflow   Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    sourceNode Node     @relation("SourceNode", fields: [source_node_id], references: [id], onDelete: Cascade)
+    targetNode Node     @relation("TargetNode", fields: [target_node_id], references: [id], onDelete: Cascade)
+
+    @@map("node_edges")
+}
+
+model ActionNode {
+    id             String @id @default(uuid())
+    node_id        String
+    action_name    String
+    order          Int
+    params         Json
+    retry_attempts Int?
+    retry_delay_ms Int?
+
+    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
+
+    @@map("action_nodes")
+}
+
+model ConditionalNode {
+    id         String @id @default(uuid())
+    node_id    String
+    order      Int
+    expression String
+
+    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
+
+    @@map("conditional_nodes")
+}
+
+model Execution {
+    id           String    @id @default(uuid())
+    workflow_id  String
+    trigger_id   String?
+    started_at   DateTime  @default(now())
+    completed_at DateTime?
+    status       String
+    context      Json
+
+    workflow Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    trigger  Trigger?           @relation(fields: [trigger_id], references: [id])
+    nodeLogs NodeExecutionLog[]
+
+    @@map("executions")
+}
+
+model NodeExecutionLog {
+    id           String    @id @default(uuid())
+    execution_id String
+    node_id      String
+    event_type   String
+    started_at   DateTime  @default(now())
+    completed_at DateTime?
+    data         Json?
+
+    execution Execution     @relation(fields: [execution_id], references: [id], onDelete: Cascade)
+    node      Node          @relation(fields: [node_id], references: [id], onDelete: Cascade)
+    taskLogs  NodeTaskLog[]
+
+    @@map("node_execution_logs")
+}
+
+model NodeTaskLog {
+    id          String   @id @default(uuid())
+    node_log_id String
+    task_id     String
+    task_type   String
+    status      String
+    data        Json?
+    created_at  DateTime @default(now())
+
+    nodeLog NodeExecutionLog @relation(fields: [node_log_id], references: [id], onDelete: Cascade)
+
+    @@map("node_task_logs")
+}
