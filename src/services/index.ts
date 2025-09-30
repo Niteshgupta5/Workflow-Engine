@@ -6,3 +6,4 @@ export * from "./trigger.service";
 export * from "./action-node.service";
 export * from "./node-edge.service";
 export * from "./conditional-node.service";
+export * from "./loop-config.service";

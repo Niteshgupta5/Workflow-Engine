@@ -44,7 +44,7 @@ export const runNode = async (
       }
 
       case NodeType.LOOP: {
-        const result = await handleLoopNode(node, nodeLog.id, context, prevNodeId);
+        const result = await handleLoopNode(node, nodeLog.id, executionId, context, prevNodeId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;

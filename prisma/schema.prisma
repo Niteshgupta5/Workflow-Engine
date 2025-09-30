@@ -44,12 +44,14 @@ model Node {
     name        String
     created_at  DateTime @default(now())
 
-    workflow   Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-    outgoing   NodeEdge[]         @relation("SourceNode")
-    incoming   NodeEdge[]         @relation("TargetNode")
-    actionNode ActionNode[]
-    condition  ConditionalNode[]
-    logs       NodeExecutionLog[]
+    workflow          Workflow            @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    outgoing          NodeEdge[]          @relation("SourceNode")
+    incoming          NodeEdge[]          @relation("TargetNode")
+    group             NodeEdge[]          @relation("GroupNode")
+    actionNode        ActionNode[]
+    condition         ConditionalNode[]
+    logs              NodeExecutionLog[]
+    LoopConfiguration LoopConfiguration[]
 
     @@map("nodes")
 }
@@ -59,12 +61,13 @@ model NodeEdge {
     workflow_id    String
     source_node_id String
     target_node_id String
-    edge_type      String  @default("normal")
+    group_id       String?
     condition      String?
 
     workflow   Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
     sourceNode Node     @relation("SourceNode", fields: [source_node_id], references: [id], onDelete: Cascade)
     targetNode Node     @relation("TargetNode", fields: [target_node_id], references: [id], onDelete: Cascade)
+    groupNode  Node?    @relation("GroupNode", fields: [group_id], references: [id], onDelete: Cascade)
 
     @@map("node_edges")
 }
@@ -92,6 +95,19 @@ model ConditionalNode {
     node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
 
     @@map("conditional_nodes")
+}
+
+model LoopConfiguration {
+    id               String  @id @default(uuid())
+    node_id          String
+    loop_type        String
+    max_iterations   Int?
+    exit_condition   String?
+    data_source_path String?
+
+    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
+
+    @@map("loop_configurations")
 }
 
 model Execution {

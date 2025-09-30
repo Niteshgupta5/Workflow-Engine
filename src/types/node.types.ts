@@ -1,21 +1,24 @@
 import { JsonConfig } from "./common.types";
-import { ActionName, NodeEdgesCondition, NodeEdgeType, NodeType } from "./enums";
+import { ActionName, LoopType, NodeEdgesCondition, NodeType } from "./enums";
 
 export interface CreateNodeRecord {
   workflow_id: string;
   type: NodeType;
   name: string;
-  parent_node_id?: string;
+  prev_node_id?: string;
+  next_node_id?: string;
+  group_id?: string;
   condition?: NodeEdgesCondition;
   actions?: CreateActionNodeRecord[];
   conditions?: CreateConditionalNodeRecord[];
+  loop_configuration?: LoopConfigurationRecord;
 }
 
 export interface CreateNodeEdgeRecord {
   workflow_id: string;
   source_node_id: string;
   target_node_id: string;
-  edge_type: NodeEdgeType;
+  group_id?: string;
   condition: NodeEdgesCondition;
 }
 
@@ -32,4 +35,12 @@ export interface CreateConditionalNodeRecord {
   node_id: string;
   order: number;
   expression: string;
+}
+
+export interface LoopConfigurationRecord {
+  node_id: string;
+  loop_type: LoopType;
+  max_iterations?: number | null;
+  exit_condition?: string;
+  data_source_path?: string;
 }

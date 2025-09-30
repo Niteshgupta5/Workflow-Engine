@@ -1,6 +1,7 @@
 import Joi, { ObjectSchema } from "joi";
 import { patterns } from "../constants";
-import { ActionName, CreateNodeRecord, HttpMethod, NodeEdgesCondition, NodeType } from "../../types";
+import { ActionName, CreateNodeRecord, HttpMethod, LoopType, NodeEdgesCondition, NodeType } from "../../types";
+import { START_NODE_ID } from "../../utils";
 
 const actionSchema = {
   body: Joi.object().keys({
@@ -45,6 +46,31 @@ const conditionSchema = {
   }),
 };
 
+const loopConfigurationSchema = {
+  body: Joi.object().keys({
+    loop_type: Joi.string()
+      .valid(...Object.values(LoopType))
+      .required(),
+    max_iterations: Joi.when("loop_type", {
+      is: LoopType.FIXED,
+      then: Joi.number().integer().min(1).required(),
+      otherwise: Joi.forbidden(),
+    }),
+
+    exit_condition: Joi.when("loop_type", {
+      is: LoopType.WHILE,
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+
+    data_source_path: Joi.when("loop_type", {
+      is: LoopType.FOR_EACH,
+      then: Joi.string().required(),
+      otherwise: Joi.forbidden(),
+    }),
+  }),
+};
+
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
   body: Joi.object().keys({
     workflow_id: Joi.string().pattern(patterns.uuid).required(),
@@ -65,13 +91,20 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
       otherwise: Joi.forbidden(),
     }),
 
-    parent_node_id: Joi.string().pattern(patterns.uuid).optional(),
+    loop_configuration: Joi.when("type", {
+      is: NodeType.LOOP,
+      then: loopConfigurationSchema.body.required(),
+      otherwise: Joi.forbidden(),
+    }),
+    prev_node_id: Joi.string().pattern(patterns.uuid).optional().default(START_NODE_ID),
+    next_node_id: Joi.string().pattern(patterns.uuid).optional(),
     condition: Joi.string()
       .valid(...Object.values(NodeEdgesCondition))
-      .when("parent_node_id", {
+      .when("prev_node_id", {
         is: Joi.exist(),
         then: Joi.required(),
         otherwise: Joi.forbidden(),
       }),
+    group_id: Joi.string().pattern(patterns.uuid).optional(),
   }),
 };

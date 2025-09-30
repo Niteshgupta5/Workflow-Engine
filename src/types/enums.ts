@@ -70,3 +70,9 @@ export enum TaskStatus {
   COMPLETED = "completed",
   CANCELLED = "cancelled",
 }
+
+export enum LoopType {
+  FOR_EACH = "for_each",
+  FIXED = "fixed_count",
+  WHILE = "while_loop",
+}
