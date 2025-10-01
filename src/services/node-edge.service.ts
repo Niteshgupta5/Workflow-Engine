@@ -14,7 +14,7 @@ export async function createNodeEdge(data: CreateNodeEdgeRecord): Promise<NodeEd
 export async function getNextNodeId(
   currentNodeId: string,
   condition: NodeEdgesCondition,
-  groupId?: string
+  groupId?: string | null
 ): Promise<string | null> {
   try {
     const edge = await prisma.nodeEdge.findFirst({
@@ -31,16 +31,17 @@ export async function getNextNodeId(
   }
 }
 
-export async function getNextNodeEdgeAfterLoop(loopNodeId: string): Promise<NodeEdge | null> {
+export async function getNextNodeAfterLoop(loopNodeId: string): Promise<string | null> {
   try {
     const edges = await prisma.nodeEdge.findMany({
       where: {
         source_node_id: loopNodeId,
+        condition: NodeEdgesCondition.NONE,
         group_id: null,
       },
     });
 
-    return edges.length > 0 ? edges[0] : null;
+    return edges.length > 0 ? edges[0].target_node_id : null;
   } catch (error) {
     console.error("ERROR: TO FETCH NEXT NODE AFTER LOOP", error);
     throw error;

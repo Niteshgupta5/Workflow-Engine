@@ -53,3 +53,7 @@ export const isNilOrEmpty = (value: any): boolean =>
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function getValueByPath(obj: any, path: string): any {
+  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+}

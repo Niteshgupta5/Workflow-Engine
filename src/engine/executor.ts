@@ -3,7 +3,11 @@ import { ExecutionStatus, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
 
-export async function runWorkflow(workflowId: string, executionId: string, inputContext: Record<string, any> = {}) {
+export async function runWorkflow(
+  workflowId: string,
+  executionId: string,
+  inputContext: Record<string, any> = {}
+): Promise<void> {
   const workflow = await getWorkflowById(workflowId);
 
   if (!workflow) throw new Error("Workflow not found");

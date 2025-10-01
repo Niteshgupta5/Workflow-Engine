@@ -11,7 +11,8 @@ export async function handleActionNode(
   node: Node,
   nodeLogId: string,
   context: Record<string, any>,
-  prevNodeId: string | null = null
+  prevNodeId: string | null = null,
+  groupId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
   let nodeStatus = ExecutionStatus.COMPLETED;
   let prevActionId = null; // To fetch results of previous action if needed
@@ -19,7 +20,7 @@ export async function handleActionNode(
   const nodeActions = await getNodeActions(node.id);
 
   for (const action of nodeActions) {
-    console.log(`⚡ Running action: ${action.action_name}`);
+    console.log(`⚡ Running action: ${action.action_name} for node: ${node.name}`);
     let attempts = 0;
     const maxAttempts = action.retry_attempts ?? 0;
     const delayMs = action.retry_delay_ms ?? 0;
@@ -66,6 +67,6 @@ export async function handleActionNode(
     prevActionId = action.id;
   }
 
-  const nextNodeId = await getNextNodeId(node.id, NodeEdgesCondition.NONE);
+  const nextNodeId = await getNextNodeId(node.id, NodeEdgesCondition.NONE, groupId);
   return { status: nodeStatus, nextNodeId };
 }

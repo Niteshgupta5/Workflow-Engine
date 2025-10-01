@@ -1,16 +1,20 @@
 import { LoopConfiguration, Node } from "@prisma/client";
 import { ExecutionStatus, LoopType, NodeEdgesCondition } from "../../../types";
-import { getLoopConfig, getNextNodeId, getNodeById } from "../../../services";
+import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId, getNodeById } from "../../../services";
 import { runNode } from "../../node-runner";
+import { evaluateCondition, getValueByPath } from "../../../utils";
+import { executeSubgraph } from "./subgraph.executor";
 
 export async function handleLoopNode(
   node: Node,
-  nodeLogId: string,
   executionId: string,
   context: Record<string, any>,
   prevNodeId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
   const loopConfigs = await getLoopConfig(node.id);
+  let nodeStatus = ExecutionStatus.COMPLETED;
+  console.log("=====Loop Start=====");
+
   if (!loopConfigs) {
     console.error("No loop configuration found for loop node:", node.id);
     return { status: ExecutionStatus.FAILED, nextNodeId: null };
@@ -18,48 +22,36 @@ export async function handleLoopNode(
 
   switch (loopConfigs.loop_type) {
     case LoopType.FIXED:
-      await handleFixedLoop(loopConfigs, node, context, executionId);
+      nodeStatus = await handleFixedLoop(node, loopConfigs, context, executionId);
       break;
     case LoopType.FOR_EACH:
-      await handleForEachLoop(loopConfigs, node, context);
+      nodeStatus = await handleForEachLoop(node, loopConfigs, context, executionId);
       break;
     case LoopType.WHILE:
-      await handleConditionalLoop(loopConfigs, node);
+      nodeStatus = await handleConditionalLoop(node, loopConfigs, context, executionId);
       break;
     default:
       console.error("Unknown loop type:", loopConfigs.loop_type);
       return { status: ExecutionStatus.FAILED, nextNodeId: null };
   }
+  console.log("=====Loop End=====");
 
-  //   const iterable = resolveExpression(node.config.iterator, context);
-  //   if (!Array.isArray(iterable)) throw new Error("Loop iterator must resolve to array");
-  //   for (let i = 0; i < iterable.length; i++) {
-  //     const loopCtx = {
-  //       ...context,
-  //       loop: { index: i, value: iterable[i] },
-  //       [node.config.loop_variable]: iterable[i],
-  //     };
-  //     await runChildNodes(node.id, loopCtx);
-  //     if (node.config.condition) {
-  //       const shouldContinue = evaluateCondition(node.config.condition, loopCtx);
-  //       if (!shouldContinue) break;
-  //     }
-  //   }
-  //   return context;
+  const nextNodeId = await getNextNodeAfterLoop(node.id);
 
-  return { status: ExecutionStatus.COMPLETED, nextNodeId: null };
+  return { status: nodeStatus, nextNodeId };
 }
 
 async function handleFixedLoop(
-  configs: LoopConfiguration,
   loopNode: Node,
+  configs: LoopConfiguration,
   context: Record<string, any>,
   executionId: string
-) {
-  if (!configs?.max_iterations) return;
-  let currentNodeId: string | null = loopNode.id;
+): Promise<ExecutionStatus> {
+  if (!configs?.max_iterations) return ExecutionStatus.FAILED;
+  let nodeStatus = ExecutionStatus.COMPLETED;
+
   for (let i = 0; i < configs.max_iterations; i++) {
-    const nextNodeId = await getNextNodeId(currentNodeId, NodeEdgesCondition.NONE, loopNode.id);
+    const nextNodeId = await getNextNodeId(loopNode.id, NodeEdgesCondition.NONE, loopNode.id);
     console.log("=====>iteration", i, nextNodeId);
     if (!nextNodeId) {
       console.warn(`Loop [${loopNode.id}] stopped early at iteration ${i + 1}, no next node.`);
@@ -69,23 +61,80 @@ async function handleFixedLoop(
       console.warn(`Loop [${loopNode.id}] has next node as itself, stopping to avoid infinite loop.`);
       continue;
     }
-    const nextNode = await getNodeById(nextNodeId);
-    const result = await runNode(executionId, nextNode, context, currentNodeId);
-    currentNodeId = nextNodeId;
+
+    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
   }
+
+  return nodeStatus;
 }
 
-async function handleConditionalLoop(configs: LoopConfiguration, loopNode: Node) {
-  if (!configs?.exit_condition) return;
-  let conditionMet = false;
-  while (!conditionMet) {}
+async function handleConditionalLoop(
+  loopNode: Node,
+  configs: LoopConfiguration,
+  context: Record<string, any>,
+  executionId: string
+): Promise<ExecutionStatus> {
+  if (!configs?.exit_condition) return ExecutionStatus.FAILED;
+
+  let iteration = 0;
+  let conditionMet = true;
+  let nodeStatus = ExecutionStatus.COMPLETED;
+
+  while (conditionMet) {
+    const exit = evaluateCondition(configs.exit_condition, context);
+    if (exit) {
+      console.log(`Loop [${loopNode.id}] exited at iteration ${iteration}`);
+      break;
+    }
+
+    const nextNodeId = await getNextNodeId(loopNode.id, NodeEdgesCondition.NONE, loopNode.id);
+    if (!nextNodeId) {
+      console.warn(`Loop [${loopNode.id}] stopped early at iteration ${iteration + 1}, no next node.`);
+      break;
+    }
+    if (nextNodeId === loopNode.id) {
+      console.warn(`Loop [${loopNode.id}] has next node as itself, stopping to avoid infinite loop.`);
+      continue;
+    }
+
+    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
+    iteration++;
+  }
+
+  return nodeStatus;
 }
 
-async function handleForEachLoop(configs: LoopConfiguration, loopNode: Node, context: Record<string, any>) {
-  if (!configs?.data_source_path) return;
-  // const dataSource = resolveDataPath(configs.data_source_path, context);
-  // if (!Array.isArray(dataSource)) throw new Error("Data source must resolve to an array");
-  // for (const item of dataSource) {
-  //   const loopContext = { ...context, loop_item: item };
-  // }
+async function handleForEachLoop(
+  loopNode: Node,
+  configs: LoopConfiguration,
+  context: Record<string, any>,
+  executionId: string
+): Promise<ExecutionStatus> {
+  if (!configs?.data_source_path) return ExecutionStatus.FAILED;
+
+  let nodeStatus = ExecutionStatus.COMPLETED;
+  const items = getValueByPath(context, configs.data_source_path);
+  if (!Array.isArray(items)) {
+    console.error(`Loop [${loopNode.id}] expected array at ${configs.data_source_path}, got:`, items);
+    return ExecutionStatus.FAILED;
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    // context["$item"] = items[i]; // inject current item into context
+    // context["$index"] = i;
+
+    const nextNodeId = await getNextNodeId(loopNode.id, NodeEdgesCondition.NONE, loopNode.id);
+    if (!nextNodeId) {
+      console.warn(`Loop [${loopNode.id}] stopped at index ${i + 1}, no next node.`);
+      break;
+    }
+
+    if (nextNodeId === loopNode.id) {
+      console.warn(`Loop [${loopNode.id}] points to itself. Stopping to avoid infinite loop.`);
+      continue;
+    }
+    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
+  }
+
+  return nodeStatus;
 }

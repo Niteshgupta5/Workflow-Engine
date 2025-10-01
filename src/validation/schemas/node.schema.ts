@@ -18,16 +18,18 @@ const actionSchema = {
 
       data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
 
-      url: Joi.string().pattern(patterns.url).when(Joi.ref("...action_name"), {
-        is: ActionName.SEND_HTTP_REQUEST,
-        then: Joi.required(),
-        otherwise: Joi.forbidden(),
-      }),
+      url: Joi.string()
+        .pattern(patterns.url)
+        .when(Joi.ref("...action_name"), {
+          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
+          then: Joi.required(),
+          otherwise: Joi.forbidden(),
+        }),
 
       method: Joi.string()
         .valid(...Object.values(HttpMethod))
         .when(Joi.ref("...action_name"), {
-          is: ActionName.SEND_HTTP_REQUEST,
+          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
           then: Joi.required(),
           otherwise: Joi.forbidden(),
         }),

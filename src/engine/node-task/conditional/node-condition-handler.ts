@@ -10,7 +10,8 @@ export async function handleConditionalNode(
   node: Node,
   nodeLogId: string,
   context: Record<string, any>,
-  prevNodeId: string | null = null
+  prevNodeId: string | null = null,
+  groupId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
   let nodeStatus = ExecutionStatus.COMPLETED;
   let pass = true;
@@ -19,7 +20,7 @@ export async function handleConditionalNode(
   const nodeConditions = await getNodeConditions(node.id);
 
   for (const condition of nodeConditions) {
-    console.log(`🔍 Evaluating condition: ${condition.expression}`);
+    console.log(`🔍 Evaluating condition: ${condition.expression} for node: ${node.name}`);
 
     const taskLog = await logTaskExecution({
       node_log_id: nodeLogId,
@@ -52,8 +53,8 @@ export async function handleConditionalNode(
   }
 
   const nextNodeId = pass
-    ? await getNextNodeId(node.id, NodeEdgesCondition.ON_TRUE)
-    : await getNextNodeId(node.id, NodeEdgesCondition.ON_FALSE);
+    ? await getNextNodeId(node.id, NodeEdgesCondition.ON_TRUE, groupId)
+    : await getNextNodeId(node.id, NodeEdgesCondition.ON_FALSE, groupId);
 
   return { status: nodeStatus, nextNodeId };
 }

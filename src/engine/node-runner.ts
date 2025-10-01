@@ -11,10 +11,12 @@ export const runNode = async (
   executionId: string,
   node: Node,
   context: Record<string, any>,
-  prevNodeId: string | null = null
+  prevNodeId: string | null = null,
+  groupId: string | null = null
 ): Promise<{ nodeResult: Record<string, any>; nextNode: Node | null }> => {
   let nextNodeId: string | null = null;
   let nodeStatus: ExecutionStatus = ExecutionStatus.COMPLETED;
+  console.log("Node Executed", node.name);
 
   try {
     if (!context.input) context.input = context;
@@ -30,21 +32,21 @@ export const runNode = async (
 
     switch (node.type) {
       case NodeType.ACTION: {
-        const result = await handleActionNode(node, nodeLog.id, context, prevNodeId);
+        const result = await handleActionNode(node, nodeLog.id, context, prevNodeId, groupId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;
       }
 
       case NodeType.CONDITIONAL: {
-        const result = await handleConditionalNode(node, nodeLog.id, context, prevNodeId);
+        const result = await handleConditionalNode(node, nodeLog.id, context, prevNodeId, groupId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;
       }
 
       case NodeType.LOOP: {
-        const result = await handleLoopNode(node, nodeLog.id, executionId, context, prevNodeId);
+        const result = await handleLoopNode(node, executionId, context, prevNodeId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;
