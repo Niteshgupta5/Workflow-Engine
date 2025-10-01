@@ -3,7 +3,12 @@ import { prisma } from "../config";
 import { CreateWorkflowRecord } from "../types";
 
 export async function createWorkflow(data: CreateWorkflowRecord): Promise<Workflow> {
-  return prisma.workflow.create({ data });
+  try {
+    return prisma.workflow.create({ data });
+  } catch (error) {
+    console.error("ERROR: ON CREATE WORKFLOW", error);
+    throw error;
+  }
 }
 
 export async function getWorkflows(): Promise<Workflow[]> {
@@ -19,7 +24,7 @@ export async function getWorkflows(): Promise<Workflow[]> {
       },
     });
   } catch (error) {
-    console.error("ERROR: TO GET WORKFLOW List", error);
+    console.error("ERROR: TO GET WORKFLOW LIST", error);
     throw error;
   }
 }

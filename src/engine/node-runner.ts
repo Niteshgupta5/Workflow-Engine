@@ -2,7 +2,7 @@ import type { Node } from "@prisma/client";
 import { getNodeById, logNodeExecution, updateNodeExecutionLog } from "../services";
 import { ExecutionLogEventType, ExecutionStatus, NodeType } from "../types";
 import { handleActionNode, handleConditionalNode } from "./node-task";
-import { handleLoopNode } from "./node-task/loop";
+import { handleLoopNode } from "./node-task";
 
 /**
  * Main node runner

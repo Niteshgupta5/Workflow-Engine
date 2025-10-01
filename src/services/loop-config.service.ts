@@ -17,7 +17,7 @@ export async function getLoopConfig(nodeId: string): Promise<LoopConfiguration |
       where: { node_id: nodeId },
     });
   } catch (error) {
-    console.error("ERROR: Failed to Fetch Loop Configs", error);
+    console.error("ERROR: FAILED TO FETCH LOOP CONFIGS", error);
     throw error;
   }
 }

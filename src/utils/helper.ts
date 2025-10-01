@@ -22,27 +22,6 @@ export function evaluateCondition(expression: string, context: Record<string, an
   }
 }
 
-export function resolveExpression(expression: string, context: Record<string, any>): any {
-  try {
-    const resolved = expression.replace(/{{\s*\$\.([\w.]+)\s*}}/g, (_, key) => {
-      const parts = key.split(".");
-      let value: any = context;
-      for (const part of parts) {
-        value = value?.[part];
-      }
-      return JSON.stringify(value);
-    });
-
-    console.log(`Resolved Expression ${expression} =>`, resolved);
-
-    const fn = new Function(`return (${resolved});`);
-    return fn();
-  } catch (error) {
-    console.error("Expression resolution failed:", error);
-    throw error;
-  }
-}
-
 export function getJson<T>(value: any): T {
   return value as T;
 }

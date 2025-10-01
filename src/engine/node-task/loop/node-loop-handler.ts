@@ -1,7 +1,6 @@
 import { LoopConfiguration, Node } from "@prisma/client";
 import { ExecutionStatus, LoopType, NodeEdgesCondition } from "../../../types";
-import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId, getNodeById } from "../../../services";
-import { runNode } from "../../node-runner";
+import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
 import { evaluateCondition, getValueByPath } from "../../../utils";
 import { executeSubgraph } from "./subgraph.executor";
 
