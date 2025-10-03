@@ -17,7 +17,7 @@ export async function getWorkflows(): Promise<Workflow[]> {
       include: {
         triggers: true,
         nodes: {
-          include: { actionNode: true, condition: true },
+          include: { actionNode: true, condition: true, LoopConfiguration: true },
           orderBy: { created_at: "asc" },
         },
         node_edges: true,

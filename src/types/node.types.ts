@@ -14,6 +14,14 @@ export interface CreateNodeRecord {
   loop_configuration?: LoopConfigurationRecord;
 }
 
+export interface UpdateNodeRecord {
+  type: NodeType;
+  name: string;
+  actions?: UpdateActionNodeRecord[];
+  conditions?: UpdateConditionalNodeRecord[];
+  loop_configuration?: UpdateLoopConfigurationRecord;
+}
+
 export interface CreateNodeEdgeRecord {
   workflow_id: string;
   source_node_id: string;
@@ -31,14 +39,35 @@ export interface CreateActionNodeRecord {
   retry_delay_ms?: number;
 }
 
+export interface UpdateActionNodeRecord {
+  id: string;
+  action_name: ActionName;
+  params?: JsonConfig;
+  retry_attempts?: number;
+  retry_delay_ms?: number;
+}
+
 export interface CreateConditionalNodeRecord {
   node_id: string;
   order: number;
   expression: string;
 }
 
+export interface UpdateConditionalNodeRecord {
+  id: string;
+  expression: string;
+}
+
 export interface LoopConfigurationRecord {
   node_id: string;
+  loop_type: LoopType;
+  max_iterations?: number | null;
+  exit_condition?: string;
+  data_source_path?: string;
+}
+
+export interface UpdateLoopConfigurationRecord {
+  id: string;
   loop_type: LoopType;
   max_iterations?: number | null;
   exit_condition?: string;

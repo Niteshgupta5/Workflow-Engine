@@ -1,6 +1,6 @@
 import { LoopConfiguration } from "@prisma/client";
 import { prisma } from "../config";
-import { LoopConfigurationRecord } from "../types";
+import { LoopConfigurationRecord, UpdateLoopConfigurationRecord } from "../types";
 
 export async function createLoopConfig(data: LoopConfigurationRecord): Promise<LoopConfiguration> {
   try {
@@ -18,6 +18,24 @@ export async function getLoopConfig(nodeId: string): Promise<LoopConfiguration |
     });
   } catch (error) {
     console.error("ERROR: FAILED TO FETCH LOOP CONFIGS", error);
+    throw error;
+  }
+}
+
+export async function updateLoopConfig(data: UpdateLoopConfigurationRecord): Promise<void> {
+  try {
+    if (!data) return;
+    await prisma.loopConfiguration.update({
+      where: { id: data.id },
+      data: {
+        loop_type: data.loop_type,
+        max_iterations: data.max_iterations,
+        exit_condition: data.exit_condition,
+        data_source_path: data.data_source_path,
+      },
+    });
+  } catch (error) {
+    console.error("ERROR: TO UPDATE LOOP CONFIGURATION", error);
     throw error;
   }
 }

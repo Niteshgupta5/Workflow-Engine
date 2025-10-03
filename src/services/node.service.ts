@@ -1,10 +1,10 @@
 import { Node } from "@prisma/client";
 import { prisma } from "../config";
 import { createNodeEdge, deleteNodeEdges } from "./node-edge.service";
-import { createActionNodes } from "./action-node.service";
-import { createConditionalNodes } from "./conditional-node.service";
-import { CreateNodeRecord, NodeEdgesCondition, NodeType } from "../types";
-import { createLoopConfig } from "./loop-config.service";
+import { createActionNodes, upsertManyActionNodes } from "./action-node.service";
+import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
+import { CreateNodeRecord, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
+import { createLoopConfig, updateLoopConfig } from "./loop-config.service";
 import { START_NODE_ID } from "../utils";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
@@ -149,4 +149,50 @@ export async function getEntryNode(workflowId: string): Promise<Node | null> {
     console.error("ERROR: FAILED TO FETCH FIRST NODE OF WORKFLOW", error);
     throw error;
   }
+}
+
+export async function updateNode(nodeId: string, data: UpdateNodeRecord) {
+  try {
+    const existingNode = await getNodeById(nodeId);
+    if (!existingNode) throw new Error(`Node not found with ID: ${nodeId}`);
+    if (data.type && data.type !== existingNode.type) {
+      throw new Error(`Node type cannot be updated. Please remove node ${nodeId} and create a new one.`);
+    }
+
+    await prisma.node.update({
+      where: { id: nodeId },
+      data: {
+        name: data.name ?? existingNode.name,
+      },
+    });
+
+    switch (existingNode.type) {
+      case NodeType.ACTION:
+        await upsertManyActionNodes(nodeId, data.actions || []);
+        break;
+
+      case NodeType.CONDITIONAL:
+        await upsertManyConditionsNodes(nodeId, data.conditions || []);
+        break;
+
+      case NodeType.LOOP:
+        data.loop_configuration && (await updateLoopConfig(data.loop_configuration));
+        break;
+
+      default:
+        break;
+    }
+  } catch (error) {
+    console.error("ERROR: TO UPDATE NODE", error);
+    throw error;
+  }
+}
+
+async function checkUpdateNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {
+  if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
+  if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
+  if (data.type == NodeType.LOOP && !data.loop_configuration)
+    throw new Error("Loop Configuration is required for Loop Node");
+  if (data.type != NodeType.LOOP && data.loop_configuration)
+    throw new Error("Loop Configuration is only for Loop Node");
 }

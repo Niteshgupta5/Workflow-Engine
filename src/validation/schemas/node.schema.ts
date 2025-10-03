@@ -1,6 +1,14 @@
 import Joi, { ObjectSchema } from "joi";
 import { patterns } from "../constants";
-import { ActionName, CreateNodeRecord, HttpMethod, LoopType, NodeEdgesCondition, NodeType } from "../../types";
+import {
+  ActionName,
+  CreateNodeRecord,
+  HttpMethod,
+  LoopType,
+  NodeEdgesCondition,
+  NodeType,
+  UpdateNodeRecord,
+} from "../../types";
 import { START_NODE_ID } from "../../utils";
 
 const actionSchema = {
@@ -37,7 +45,7 @@ const actionSchema = {
       body: Joi.object().optional(),
     }).required(),
 
-    retry_attempts: Joi.number().integer().min(0).optional(),
+    retry_attempts: Joi.number().integer().min(0).max(3).optional(),
     retry_delay_ms: Joi.number().integer().min(0).optional(),
   }),
 };
@@ -50,6 +58,7 @@ const conditionSchema = {
 
 const loopConfigurationSchema = {
   body: Joi.object().keys({
+    id: Joi.string().pattern(patterns.uuid).optional(),
     loop_type: Joi.string()
       .valid(...Object.values(LoopType))
       .required(),
@@ -108,5 +117,85 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
         otherwise: Joi.forbidden(),
       }),
     group_id: Joi.string().pattern(patterns.uuid).optional(),
+  }),
+};
+
+const updateActionSchema = {
+  body: Joi.object().keys({
+    id: Joi.string().pattern(patterns.uuid).optional(),
+    action_name: Joi.string()
+      .valid(...Object.values(ActionName))
+      .required(),
+
+    params: Joi.object({
+      table: Joi.string().when(Joi.ref("...action_name"), {
+        is: ActionName.UPDATE_DATABASE,
+        then: Joi.required(),
+        otherwise: Joi.forbidden(),
+      }),
+
+      data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
+
+      url: Joi.string()
+        .pattern(patterns.url)
+        .when(Joi.ref("...action_name"), {
+          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
+          then: Joi.required(),
+          otherwise: Joi.forbidden(),
+        }),
+
+      method: Joi.string()
+        .valid(...Object.values(HttpMethod))
+        .when(Joi.ref("...action_name"), {
+          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
+          then: Joi.required(),
+          otherwise: Joi.forbidden(),
+        }),
+
+      body: Joi.object().optional(),
+    }).required(),
+
+    retry_attempts: Joi.number().integer().min(0).max(3).optional(),
+    retry_delay_ms: Joi.number().integer().min(0).optional(),
+  }),
+};
+
+const updateConditionSchema = {
+  body: Joi.object().keys({
+    id: Joi.string().pattern(patterns.uuid).optional(),
+    expression: Joi.string().required(),
+  }),
+};
+
+export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
+  body: Joi.object().keys({
+    type: Joi.string()
+      .valid(...Object.values(NodeType))
+      .required(),
+    name: Joi.string().min(3).max(255).required(),
+
+    actions: Joi.array()
+      .items(updateActionSchema.body)
+      .when("type", {
+        is: NodeType.ACTION,
+        then: Joi.required(),
+        otherwise: Joi.forbidden(),
+      })
+      .optional(),
+
+    conditions: Joi.array()
+      .items(updateConditionSchema.body)
+      .when("type", {
+        is: NodeType.CONDITIONAL,
+        then: Joi.required(),
+        otherwise: Joi.forbidden(),
+      })
+      .optional(),
+
+    loop_configuration: Joi.when("type", {
+      is: NodeType.LOOP,
+      then: loopConfigurationSchema.body.required(),
+      otherwise: Joi.forbidden(),
+    }).optional(),
   }),
 };
