@@ -15,7 +15,7 @@ export async function handleActionNode(
   groupId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let prevActionId = null; // To fetch results of previous action if needed
+  let prevActionId: string | null = null; // To fetch results of previous action if needed
 
   const nodeActions = await getNodeActions(node.id);
 

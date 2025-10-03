@@ -29,6 +29,7 @@ model Trigger {
     name          String?
     type          String
     configuration Json
+    is_active     Boolean  @default(true)
     created_at    DateTime @default(now())
 
     workflow   Workflow    @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
@@ -42,6 +43,7 @@ model Node {
     workflow_id String
     type        String
     name        String
+    parent_id   String?
     created_at  DateTime @default(now())
 
     workflow          Workflow            @relation(fields: [workflow_id], references: [id], onDelete: Cascade)

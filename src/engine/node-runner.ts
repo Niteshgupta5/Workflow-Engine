@@ -11,6 +11,7 @@ export const runNode = async (
   executionId: string,
   node: Node,
   context: Record<string, any>,
+  executionContext: Record<string, any>,
   prevNodeId: string | null = null,
   groupId: string | null = null
 ): Promise<{ nodeResult: Record<string, any>; nextNode: Node | null }> => {
@@ -46,7 +47,7 @@ export const runNode = async (
       }
 
       case NodeType.LOOP: {
-        const result = await handleLoopNode(node, executionId, context, prevNodeId);
+        const result = await handleLoopNode(node, executionId, context, executionContext, prevNodeId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;

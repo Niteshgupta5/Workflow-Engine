@@ -17,7 +17,9 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
     await checkNodeValidations(data, prevNode);
 
     // Create New Node
-    const newNode = await prisma.node.create({ data: { workflow_id, type, name } });
+    const newNode = await prisma.node.create({
+      data: { workflow_id, type, name, parent_id: rest.group_id || undefined },
+    });
 
     // Handle child tables (actions, conditions, loop config)
     if (newNode.type == NodeType.ACTION && rest.actions?.length) {

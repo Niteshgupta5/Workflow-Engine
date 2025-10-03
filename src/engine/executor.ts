@@ -22,7 +22,7 @@ export async function runWorkflow(
   let currentNode = await getEntryNode(workflow.id); // entry node
   let prevNodeId = null; // To fetch result of previous node if needed
   while (currentNode) {
-    const result = await runNode(executionId, currentNode, inputContext, prevNodeId);
+    const result = await runNode(executionId, currentNode, inputContext, context, prevNodeId);
     context.output[currentNode.id] = result.nodeResult;
     prevNodeId = currentNode.id;
     currentNode = result.nextNode;
@@ -36,7 +36,10 @@ export async function runWorkflow(
   console.log(`✅ Execution ${executionId} completed`);
 }
 
-export async function executeTrigger(triggerId: string, inputContext: Object) {
+export async function executeTrigger(
+  triggerId: string,
+  inputContext: Object
+): Promise<{ status: number; executionId: string; message?: string; error?: string }> {
   let execution;
   const trigger = await getTriggerById(triggerId);
   const config = trigger.configuration as TriggerConfiguration;
@@ -99,7 +102,7 @@ export async function executeTrigger(triggerId: string, inputContext: Object) {
         break;
 
       default:
-        return { status: 400, error: "Unsupported trigger type" };
+        return { status: 400, error: "Unsupported trigger type", executionId: execution.id };
     }
 
     return {

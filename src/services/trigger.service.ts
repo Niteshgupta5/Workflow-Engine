@@ -14,16 +14,36 @@ export async function createTrigger(data: CreateTriggerRecord): Promise<Trigger>
       ] = `${process.env.BASE_URL}/workflow/${data.workflow_id}/run`;
       (data.configuration[data.type] as JsonConfig)["method"] = HttpMethod.POST;
     }
+    const activeTrigger = await getActiveTriggerByWorkflowId(data.workflow_id);
+    if (activeTrigger) {
+      throw new Error(
+        "An active trigger already exists for this workflow. Please deactivate it before creating a new one."
+      );
+    }
+
     return await prisma.trigger.create({
       data: {
         workflow_id: data.workflow_id,
         name: data.name,
         type: data.type,
         configuration: data.configuration as JsonConfig,
+        // ...(activeTrigger ? { is_active: false } : {}),
       },
     });
   } catch (error) {
     console.error("ERROR: TO CREATE TRIGGER", error);
+    throw error;
+  }
+}
+
+export async function getActiveTriggerByWorkflowId(workflowId: string): Promise<Trigger | null> {
+  try {
+    const trigger = await prisma.trigger.findFirst({
+      where: { workflow_id: workflowId, is_active: true },
+    });
+    return trigger;
+  } catch (error) {
+    console.error("ERROR: TO GET TRIGGER BY WORKFLOW ID", error);
     throw error;
   }
 }

@@ -8,6 +8,7 @@ export async function handleLoopNode(
   node: Node,
   executionId: string,
   context: Record<string, any>,
+  executionContext: Record<string, any>,
   prevNodeId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
   const loopConfigs = await getLoopConfig(node.id);
@@ -21,13 +22,13 @@ export async function handleLoopNode(
 
   switch (loopConfigs.loop_type) {
     case LoopType.FIXED:
-      nodeStatus = await handleFixedLoop(node, loopConfigs, context, executionId);
+      nodeStatus = await handleFixedLoop(node, loopConfigs, context, executionContext, executionId);
       break;
     case LoopType.FOR_EACH:
-      nodeStatus = await handleForEachLoop(node, loopConfigs, context, executionId);
+      nodeStatus = await handleForEachLoop(node, loopConfigs, context, executionContext, executionId);
       break;
     case LoopType.WHILE:
-      nodeStatus = await handleConditionalLoop(node, loopConfigs, context, executionId);
+      nodeStatus = await handleConditionalLoop(node, loopConfigs, context, executionContext, executionId);
       break;
     default:
       console.error("Unknown loop type:", loopConfigs.loop_type);
@@ -44,6 +45,7 @@ async function handleFixedLoop(
   loopNode: Node,
   configs: LoopConfiguration,
   context: Record<string, any>,
+  executionContext: Record<string, any>,
   executionId: string
 ): Promise<ExecutionStatus> {
   if (!configs?.max_iterations) return ExecutionStatus.FAILED;
@@ -61,7 +63,7 @@ async function handleFixedLoop(
       continue;
     }
 
-    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
+    await executeSubgraph(loopNode, context, executionContext, executionId, nodeStatus, nextNodeId, i + 1);
   }
 
   return nodeStatus;
@@ -71,6 +73,7 @@ async function handleConditionalLoop(
   loopNode: Node,
   configs: LoopConfiguration,
   context: Record<string, any>,
+  executionContext: Record<string, any>,
   executionId: string
 ): Promise<ExecutionStatus> {
   if (!configs?.exit_condition) return ExecutionStatus.FAILED;
@@ -96,7 +99,7 @@ async function handleConditionalLoop(
       continue;
     }
 
-    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
+    await executeSubgraph(loopNode, context, executionContext, executionId, nodeStatus, nextNodeId, iteration + 1);
     iteration++;
   }
 
@@ -107,6 +110,7 @@ async function handleForEachLoop(
   loopNode: Node,
   configs: LoopConfiguration,
   context: Record<string, any>,
+  executionContext: Record<string, any>,
   executionId: string
 ): Promise<ExecutionStatus> {
   if (!configs?.data_source_path) return ExecutionStatus.FAILED;
@@ -132,7 +136,7 @@ async function handleForEachLoop(
       console.warn(`Loop [${loopNode.id}] points to itself. Stopping to avoid infinite loop.`);
       continue;
     }
-    await executeSubgraph(loopNode, context, executionId, nodeStatus, nextNodeId);
+    await executeSubgraph(loopNode, context, executionContext, executionId, nodeStatus, nextNodeId, i + 1);
   }
 
   return nodeStatus;
