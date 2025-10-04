@@ -67,9 +67,12 @@ export interface LoopConfigurationRecord {
 }
 
 export interface UpdateLoopConfigurationRecord {
-  id: string;
   loop_type: LoopType;
   max_iterations?: number | null;
   exit_condition?: string;
   data_source_path?: string;
+}
+
+export interface IdParameter {
+  id: string;
 }

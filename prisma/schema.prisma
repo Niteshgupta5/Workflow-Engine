@@ -11,6 +11,7 @@ model Workflow {
     id          String   @id @default(uuid())
     name        String
     description String?
+    // org_id        String
     enabled     Boolean  @default(true)
     created_at  DateTime @default(now())
     updated_at  DateTime @updatedAt

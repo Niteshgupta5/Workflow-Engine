@@ -9,7 +9,7 @@ export interface CreateTriggerRecord {
 
 export interface UpdateTriggerRecord {
   name?: string;
-  type?: TriggerType;
+  type: TriggerType;
   configuration?: Partial<TriggerConfiguration>;
 }
 

@@ -1,6 +1,15 @@
 import Joi, { AlternativesSchema, ObjectSchema } from "joi";
 import { patterns } from "../constants";
-import { AuthConfig, AuthType, CreateTriggerRecord, HttpMethod, TriggerConfiguration, TriggerType } from "../../types";
+import {
+  AuthConfig,
+  AuthType,
+  CreateTriggerRecord,
+  HttpMethod,
+  IdParameter,
+  TriggerConfiguration,
+  TriggerType,
+  UpdateTriggerRecord,
+} from "../../types";
 
 export const authSchema: ObjectSchema<AuthConfig> = Joi.object({
   type: Joi.string()
@@ -94,13 +103,25 @@ export const createTriggerSchema: { body: ObjectSchema<CreateTriggerRecord> } = 
 };
 
 export const updateTriggerSchema: {
-  body: ObjectSchema<Partial<CreateTriggerRecord>>;
+  body: ObjectSchema<UpdateTriggerRecord>;
 } = {
   body: Joi.object().keys({
     name: Joi.string().max(255).optional(),
     type: Joi.string()
       .valid(...Object.values(TriggerType))
-      .optional(),
+      .required(),
     configuration: configurationSchema.optional(),
+  }),
+};
+
+export const getTriggerSchema: { params: ObjectSchema<IdParameter> } = {
+  params: Joi.object().keys({
+    id: Joi.string().uuid().required(),
+  }),
+};
+
+export const deleteTriggerSchema: { params: ObjectSchema<IdParameter> } = {
+  params: Joi.object().keys({
+    id: Joi.string().uuid().required(),
   }),
 };

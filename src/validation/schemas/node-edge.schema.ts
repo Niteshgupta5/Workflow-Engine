@@ -1,15 +1,20 @@
-import Joi from "joi";
-import { patterns } from "../constants";
-import { NodeEdgesCondition } from "../../types";
+import Joi, { ObjectSchema } from "joi";
+import { CreateNodeEdgeRecord, IdParameter, NodeEdgesCondition } from "../../types";
 
-export const nodeEdgeSchema = {
+export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
   body: Joi.object().keys({
-    workflow_id: Joi.string().pattern(patterns.uuid).required(),
-    source_node_id: Joi.string().pattern(patterns.uuid).required(),
-    target_node_id: Joi.string().pattern(patterns.uuid).required(),
+    workflow_id: Joi.string().uuid().required(),
+    source_node_id: Joi.string().uuid().required(),
+    target_node_id: Joi.string().uuid().required(),
     condition: Joi.string()
       .valid(...Object.values(NodeEdgesCondition))
       .required(),
-    group_id: Joi.string().pattern(patterns.uuid).optional(),
+    group_id: Joi.string().uuid().optional(),
+  }),
+};
+
+export const deleteNodeEdgeSchema: { params: ObjectSchema<IdParameter> } = {
+  params: Joi.object().keys({
+    id: Joi.string().uuid().required(),
   }),
 };

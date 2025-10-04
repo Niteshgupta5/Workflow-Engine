@@ -22,11 +22,15 @@ export async function getLoopConfig(nodeId: string): Promise<LoopConfiguration |
   }
 }
 
-export async function updateLoopConfig(data: UpdateLoopConfigurationRecord): Promise<void> {
+export async function updateLoopConfig(nodeId: string, data: UpdateLoopConfigurationRecord): Promise<void> {
   try {
     if (!data) return;
+
+    const config = await getLoopConfig(nodeId);
+    if (!config) throw new Error(`Loop configuration not found for node ${nodeId}.`);
+
     await prisma.loopConfiguration.update({
-      where: { id: data.id },
+      where: { id: config.id },
       data: {
         loop_type: data.loop_type,
         max_iterations: data.max_iterations,

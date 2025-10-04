@@ -4,6 +4,7 @@ import {
   ActionName,
   CreateNodeRecord,
   HttpMethod,
+  IdParameter,
   LoopType,
   NodeEdgesCondition,
   NodeType,
@@ -58,7 +59,6 @@ const conditionSchema = {
 
 const loopConfigurationSchema = {
   body: Joi.object().keys({
-    id: Joi.string().pattern(patterns.uuid).optional(),
     loop_type: Joi.string()
       .valid(...Object.values(LoopType))
       .required(),
@@ -84,7 +84,7 @@ const loopConfigurationSchema = {
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
   body: Joi.object().keys({
-    workflow_id: Joi.string().pattern(patterns.uuid).required(),
+    workflow_id: Joi.string().uuid().required(),
     type: Joi.string()
       .valid(...Object.values(NodeType))
       .required(),
@@ -107,8 +107,8 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
       then: loopConfigurationSchema.body.required(),
       otherwise: Joi.forbidden(),
     }),
-    prev_node_id: Joi.string().pattern(patterns.uuid).optional().default(START_NODE_ID),
-    next_node_id: Joi.string().pattern(patterns.uuid).optional(),
+    prev_node_id: Joi.string().uuid().optional().default(START_NODE_ID),
+    next_node_id: Joi.string().uuid().optional(),
     condition: Joi.string()
       .valid(...Object.values(NodeEdgesCondition))
       .when("prev_node_id", {
@@ -116,13 +116,13 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
         then: Joi.required(),
         otherwise: Joi.forbidden(),
       }),
-    group_id: Joi.string().pattern(patterns.uuid).optional(),
+    group_id: Joi.string().uuid().optional(),
   }),
 };
 
 const updateActionSchema = {
   body: Joi.object().keys({
-    id: Joi.string().pattern(patterns.uuid).optional(),
+    id: Joi.string().uuid().optional(),
     action_name: Joi.string()
       .valid(...Object.values(ActionName))
       .required(),
@@ -162,7 +162,7 @@ const updateActionSchema = {
 
 const updateConditionSchema = {
   body: Joi.object().keys({
-    id: Joi.string().pattern(patterns.uuid).optional(),
+    id: Joi.string().uuid().optional(),
     expression: Joi.string().required(),
   }),
 };

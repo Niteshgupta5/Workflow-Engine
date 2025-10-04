@@ -43,7 +43,7 @@ export async function getActiveTriggerByWorkflowId(workflowId: string): Promise<
     });
     return trigger;
   } catch (error) {
-    console.error("ERROR: TO GET TRIGGER BY WORKFLOW ID", error);
+    console.error("ERROR: TO GET ACTIVE TRIGGER BY WORKFLOW ID", error);
     throw error;
   }
 }
@@ -61,18 +61,39 @@ export async function getTriggerById(id: string): Promise<Trigger & { configurat
 
 export async function updateTrigger(id: string, data: UpdateTriggerRecord): Promise<Trigger> {
   try {
-    const { type } = data as any;
-
     const existing = await getTriggerById(id);
+    if (data.type && data.type !== existing.type) {
+      throw new Error(`Trigger type cannot be updated. Please remove trigger ${id} and create a new one.`);
+    }
+
+    if (data.configuration) {
+      (data.configuration[data.type] as JsonConfig)[
+        "endpoint"
+      ] = `${process.env.BASE_URL}/workflow/${existing.workflow_id}/run`;
+      (data.configuration[data.type] as JsonConfig)["method"] = HttpMethod.POST;
+    }
+
     const updatedTrigger = await prisma.trigger.update({
       where: { id },
       data: {
-        type: type ?? existing.type,
+        name: data.name ?? existing.name,
+        type: data.type ?? existing.type,
+        configuration: (data.configuration as JsonConfig) ?? existing.configuration,
       },
     });
     return updatedTrigger;
   } catch (error) {
     console.error("ERROR: TO UPDATE TRIGGER", error);
+    throw error;
+  }
+}
+
+export async function deleteTrigger(id: string): Promise<void> {
+  try {
+    await getTriggerById(id);
+    await prisma.trigger.delete({ where: { id } });
+  } catch (error) {
+    console.error("ERROR: TO DELETE TRIGGER", error);
     throw error;
   }
 }

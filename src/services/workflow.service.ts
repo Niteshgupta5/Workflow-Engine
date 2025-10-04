@@ -11,6 +11,16 @@ export async function createWorkflow(data: CreateWorkflowRecord): Promise<Workfl
   }
 }
 
+export async function updateWorkflow(id: string, data: CreateWorkflowRecord): Promise<Workflow> {
+  try {
+    await getWorkflowById(id);
+    return prisma.workflow.update({ where: { id }, data });
+  } catch (error) {
+    console.error("ERROR: ON UPDATE WORKFLOW", error);
+    throw error;
+  }
+}
+
 export async function getWorkflows(): Promise<Workflow[]> {
   try {
     return await prisma.workflow.findMany({
@@ -38,6 +48,16 @@ export async function getWorkflowById(workflowId: string): Promise<Workflow> {
     return workflow;
   } catch (error) {
     console.error("ERROR: TO GET WORKFLOW BY ID", error);
+    throw error;
+  }
+}
+
+export async function deleteWorkflow(id: string): Promise<void> {
+  try {
+    await getWorkflowById(id);
+    await prisma.workflow.delete({ where: { id } });
+  } catch (error) {
+    console.error("ERROR: TO DELETE WORKFLOW", error);
     throw error;
   }
 }

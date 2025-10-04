@@ -46,13 +46,16 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         data_source_path: rest.loop_configuration.data_source_path ?? undefined,
       });
 
-      await createNodeEdge({
-        workflow_id,
-        source_node_id: newNode.id,
-        target_node_id: newNode.id,
-        condition: NodeEdgesCondition.NONE,
-        group_id: newNode.id,
-      });
+      await createNodeEdge(
+        {
+          workflow_id,
+          source_node_id: newNode.id,
+          target_node_id: newNode.id,
+          condition: NodeEdgesCondition.NONE,
+          group_id: newNode.id,
+        },
+        false
+      );
     }
 
     // Edge Handling
@@ -61,13 +64,16 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         // For In Between Node
         await deleteNodeEdges(workflow_id, rest.prev_node_id, rest.next_node_id);
 
-        await createNodeEdge({
-          workflow_id,
-          source_node_id: rest.prev_node_id,
-          target_node_id: newNode.id,
-          condition: rest.condition ?? NodeEdgesCondition.NONE,
-          group_id: rest.group_id || undefined,
-        });
+        await createNodeEdge(
+          {
+            workflow_id,
+            source_node_id: rest.prev_node_id,
+            target_node_id: newNode.id,
+            condition: rest.condition ?? NodeEdgesCondition.NONE,
+            group_id: rest.group_id || undefined,
+          },
+          false
+        );
 
         await createNodeEdge({
           workflow_id,
@@ -78,23 +84,29 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         });
       } else {
         // For Last Node
-        await createNodeEdge({
-          workflow_id,
-          source_node_id: rest.prev_node_id,
-          target_node_id: newNode.id,
-          condition: rest.condition ?? NodeEdgesCondition.NONE,
-          group_id: rest.group_id || undefined,
-        });
+        await createNodeEdge(
+          {
+            workflow_id,
+            source_node_id: rest.prev_node_id,
+            target_node_id: newNode.id,
+            condition: rest.condition ?? NodeEdgesCondition.NONE,
+            group_id: rest.group_id || undefined,
+          },
+          false
+        );
       }
     } else if (rest.prev_node_id === START_NODE_ID && rest.next_node_id) {
       // For Beginning Node
-      await createNodeEdge({
-        workflow_id,
-        source_node_id: newNode.id,
-        target_node_id: rest.next_node_id,
-        condition: newNode.type === NodeType.CONDITIONAL ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.NONE,
-        group_id: rest.group_id || undefined,
-      });
+      await createNodeEdge(
+        {
+          workflow_id,
+          source_node_id: newNode.id,
+          target_node_id: rest.next_node_id,
+          condition: newNode.type === NodeType.CONDITIONAL ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.NONE,
+          group_id: rest.group_id || undefined,
+        },
+        false
+      );
     }
 
     return newNode;
@@ -176,7 +188,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord) {
         break;
 
       case NodeType.LOOP:
-        data.loop_configuration && (await updateLoopConfig(data.loop_configuration));
+        data.loop_configuration && (await updateLoopConfig(nodeId, data.loop_configuration));
         break;
 
       default:
@@ -188,11 +200,53 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord) {
   }
 }
 
-async function checkUpdateNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {
-  if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
-  if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
-  if (data.type == NodeType.LOOP && !data.loop_configuration)
-    throw new Error("Loop Configuration is required for Loop Node");
-  if (data.type != NodeType.LOOP && data.loop_configuration)
-    throw new Error("Loop Configuration is only for Loop Node");
+export async function updateNodeParent(nodeId: string, parentId?: string): Promise<void> {
+  try {
+    if (!parentId) parentId = undefined;
+    await prisma.node.update({ where: { id: nodeId }, data: { parent_id: parentId } });
+  } catch (error) {
+    console.error("ERROR: TO UPDATE NODE PARENT", error);
+    throw error;
+  }
 }
+
+export async function deleteNode(nodeId: string): Promise<void> {
+  try {
+    const node = await getNodeById(nodeId);
+    await prisma.$transaction(async (tx) => {
+      const incomingEdges = await tx.nodeEdge.findMany({
+        where: { workflow_id: node.workflow_id, target_node_id: nodeId },
+      });
+
+      const outgoingEdges = await tx.nodeEdge.findMany({
+        where: { workflow_id: node.workflow_id, source_node_id: nodeId },
+      });
+
+      switch (node.type) {
+        case NodeType.ACTION:
+          break;
+
+        case NodeType.CONDITIONAL:
+          break;
+
+        case NodeType.LOOP:
+          break;
+
+        default:
+          break;
+      }
+    });
+  } catch (error) {
+    console.error("ERROR: TO DELETE NODE", error);
+    throw error;
+  }
+}
+
+// async function checkUpdateNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {
+//   if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
+//   if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
+//   if (data.type == NodeType.LOOP && !data.loop_configuration)
+//     throw new Error("Loop Configuration is required for Loop Node");
+//   if (data.type != NodeType.LOOP && data.loop_configuration)
+//     throw new Error("Loop Configuration is only for Loop Node");
+// }
