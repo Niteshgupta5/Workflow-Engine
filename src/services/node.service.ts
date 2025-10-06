@@ -1,9 +1,9 @@
-import { Node } from "@prisma/client";
+import { Node, Prisma } from "@prisma/client";
 import { prisma } from "../config";
 import { createNodeEdge, deleteNodeEdges } from "./node-edge.service";
 import { createActionNodes, upsertManyActionNodes } from "./action-node.service";
 import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
-import { CreateNodeRecord, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
+import { CreateNodeRecord, GetNodeEdgeWithRelation, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
 import { createLoopConfig, updateLoopConfig } from "./loop-config.service";
 import { START_NODE_ID } from "../utils";
 
@@ -116,7 +116,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
   }
 }
 
-async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {
+async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | null): Promise<void> {
   if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
   if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
   if (prevNode?.type == NodeType.CONDITIONAL && data.condition == NodeEdgesCondition.NONE) {
@@ -163,7 +163,7 @@ export async function getEntryNode(workflowId: string): Promise<Node | null> {
   }
 }
 
-export async function updateNode(nodeId: string, data: UpdateNodeRecord) {
+export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promise<void> {
   try {
     const existingNode = await getNodeById(nodeId);
     if (!existingNode) throw new Error(`Node not found with ID: ${nodeId}`);
@@ -210,35 +210,95 @@ export async function updateNodeParent(nodeId: string, parentId?: string): Promi
   }
 }
 
-export async function deleteNode(nodeId: string): Promise<void> {
+export async function deleteNode(nodeId: string): Promise<Node> {
   try {
     const node = await getNodeById(nodeId);
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const incomingEdges = await tx.nodeEdge.findMany({
         where: { workflow_id: node.workflow_id, target_node_id: nodeId },
+        include: { sourceNode: true },
       });
 
       const outgoingEdges = await tx.nodeEdge.findMany({
         where: { workflow_id: node.workflow_id, source_node_id: nodeId },
       });
 
-      switch (node.type) {
-        case NodeType.ACTION:
-          break;
-
-        case NodeType.CONDITIONAL:
-          break;
-
-        case NodeType.LOOP:
-          break;
-
-        default:
-          break;
-      }
+      await reconnectNodeEdges(tx, node, incomingEdges, outgoingEdges);
+      await tx.node.delete({ where: { id: node.id } });
     });
+    return node;
   } catch (error) {
     console.error("ERROR: TO DELETE NODE", error);
     throw error;
+  }
+}
+
+async function getPrevNodeEdge(
+  currentNode: Node,
+  incomingEdges: GetNodeEdgeWithRelation[]
+): Promise<GetNodeEdgeWithRelation | null> {
+  if (!incomingEdges.length) return null;
+  if (incomingEdges.length == 1) return incomingEdges[0];
+  const edge = incomingEdges.find(
+    (edge) =>
+      (!currentNode.parent_id && edge.group_id == null) || (currentNode.parent_id && edge.group_id !== currentNode.id)
+  );
+  return edge ?? null;
+}
+
+async function getNextNodeEdge(
+  currentNode: Node,
+  outgoingEdges: GetNodeEdgeWithRelation[]
+): Promise<GetNodeEdgeWithRelation | null> {
+  if (!outgoingEdges.length) return null;
+  if (outgoingEdges.length === 1) return outgoingEdges[0]; // || currentNode.type === NodeType.SWITCH
+
+  const edge = outgoingEdges.find((edge) => {
+    const isNormalGroup = !currentNode.parent_id && edge.group_id == null;
+    const isParentGroup = currentNode.parent_id && edge.group_id !== currentNode.id;
+
+    if (isNormalGroup || isParentGroup) {
+      if (currentNode.type === NodeType.CONDITIONAL && edge.condition === NodeEdgesCondition.ON_TRUE) return true;
+      if (currentNode.type === NodeType.LOOP && edge.condition === NodeEdgesCondition.NONE) return true;
+    }
+
+    return false;
+  });
+
+  return edge ?? null;
+}
+
+async function reconnectNodeEdges(
+  tx: Prisma.TransactionClient,
+  currentNode: Node,
+  incomingEdges: GetNodeEdgeWithRelation[],
+  outgoingEdges: GetNodeEdgeWithRelation[]
+): Promise<void> {
+  const prevNodeEdge = await getPrevNodeEdge(currentNode, incomingEdges);
+  const nextNodeEdge = await getNextNodeEdge(currentNode, outgoingEdges);
+
+  if (prevNodeEdge && nextNodeEdge) {
+    const data = {
+      workflow_id: currentNode.workflow_id,
+      source_node_id: prevNodeEdge.source_node_id,
+      target_node_id: nextNodeEdge.target_node_id,
+      condition:
+        prevNodeEdge.sourceNode?.["type"] == NodeType.CONDITIONAL
+          ? NodeEdgesCondition.ON_TRUE
+          : NodeEdgesCondition.NONE,
+      group_id: prevNodeEdge.group_id ?? null,
+    };
+    await tx.nodeEdge.create({ data });
+  }
+  if (currentNode.type == NodeType.LOOP) {
+    await tx.node.updateMany({
+      where: { parent_id: currentNode.id },
+      data: { parent_id: currentNode.parent_id ?? null },
+    });
+    await tx.nodeEdge.updateMany({
+      where: { group_id: currentNode.id },
+      data: { group_id: currentNode.parent_id ?? null },
+    });
   }
 }
 

@@ -199,3 +199,9 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
     }).optional(),
   }),
 };
+
+export const deleteNodeSchema: { params: ObjectSchema<IdParameter> } = {
+  params: Joi.object().keys({
+    id: Joi.string().uuid().required(),
+  }),
+};

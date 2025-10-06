@@ -23,6 +23,7 @@ export enum NodeType {
   ACTION = "action",
   CONDITIONAL = "conditional",
   LOOP = "loop",
+  // SWITCH = "switch"
 }
 
 export enum NodeEdgesCondition {

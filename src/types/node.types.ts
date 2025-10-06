@@ -1,3 +1,4 @@
+import { Node, NodeEdge } from "@prisma/client";
 import { JsonConfig } from "./common.types";
 import { ActionName, LoopType, NodeEdgesCondition, NodeType } from "./enums";
 
@@ -28,6 +29,11 @@ export interface CreateNodeEdgeRecord {
   target_node_id: string;
   group_id?: string;
   condition: NodeEdgesCondition;
+}
+
+export interface GetNodeEdgeWithRelation extends NodeEdge {
+  sourceNode?: Node;
+  targetNode?: Node;
 }
 
 export interface CreateActionNodeRecord {
@@ -71,8 +77,4 @@ export interface UpdateLoopConfigurationRecord {
   max_iterations?: number | null;
   exit_condition?: string;
   data_source_path?: string;
-}
-
-export interface IdParameter {
-  id: string;
 }
