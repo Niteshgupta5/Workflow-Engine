@@ -30,17 +30,18 @@ export async function handleConditionalNode(
     });
 
     try {
-      const success = evaluateCondition(condition.expression, context);
+      const result = evaluateCondition(condition.expression, context);
       context.output[condition.id] = {
         expression: condition.expression,
-        success,
+        success: result.status,
+        matchedValue: result.value,
       };
 
       await updateTaskLog(taskLog.id, {
         status: TaskStatus.COMPLETED,
-        data: { success },
+        data: { success: result.status, matchedValue: result.value },
       });
-      pass = success;
+      pass = result.status;
     } catch (error) {
       pass = false;
       nodeStatus = ExecutionStatus.FAILED;

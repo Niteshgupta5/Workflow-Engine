@@ -1,7 +1,7 @@
 import { LoopConfiguration, Node } from "@prisma/client";
 import { ExecutionStatus, LoopType, NodeEdgesCondition } from "../../../types";
 import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
-import { evaluateCondition, getValueByPath } from "../../../utils";
+import { evaluateCondition, resolveTemplate } from "../../../utils";
 import { executeSubgraph } from "./subgraph.executor";
 
 export async function handleLoopNode(
@@ -83,7 +83,7 @@ async function handleConditionalLoop(
 
   while (conditionMet) {
     const exit = evaluateCondition(configs.exit_condition, context);
-    if (exit) {
+    if (exit.status) {
       console.log(`Loop [${loopNode.id}] exited at iteration ${iteration}`);
       break;
     }
@@ -115,7 +115,7 @@ async function handleForEachLoop(
   if (!configs?.data_source_path) return ExecutionStatus.FAILED;
 
   let nodeStatus = ExecutionStatus.COMPLETED;
-  const items = getValueByPath(context, configs.data_source_path);
+  const items = resolveTemplate(configs.data_source_path, context);
   if (!Array.isArray(items)) {
     console.error(`Loop [${loopNode.id}] expected array at ${configs.data_source_path}, got:`, items);
     return ExecutionStatus.FAILED;
@@ -123,7 +123,7 @@ async function handleForEachLoop(
 
   for (let i = 0; i < items.length; i++) {
     // context["$item"] = items[i]; // inject current item into context
-    // context["$index"] = i;
+    context["$index"] = i;
 
     const nextNodeId = await getNextNodeId(loopNode.id, NodeEdgesCondition.NONE, loopNode.id);
     if (!nextNodeId) {
