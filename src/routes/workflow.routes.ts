@@ -8,8 +8,8 @@ export const workflowRouter = Router();
 
 workflowRouter.post("/", validateRequest<CreateWorkflowRecord>(createWorkflowSchema), async (req, res) => {
   try {
-    const workflow = await createWorkflow(req.body);
-    res.json(workflow);
+    const data = await createWorkflow(req.body);
+    res.json({ message: "Workflows created successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -17,8 +17,8 @@ workflowRouter.post("/", validateRequest<CreateWorkflowRecord>(createWorkflowSch
 
 workflowRouter.patch("/:id", validateRequest<CreateWorkflowRecord>(createWorkflowSchema), async (req, res) => {
   try {
-    const workflow = await updateWorkflow(req.params.id, req.body);
-    res.json(workflow);
+    const data = await updateWorkflow(req.params.id, req.body);
+    res.json({ message: "Workflows updated successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -26,8 +26,8 @@ workflowRouter.patch("/:id", validateRequest<CreateWorkflowRecord>(createWorkflo
 
 workflowRouter.get("/", async (req, res) => {
   try {
-    const workflows = await getWorkflows();
-    res.json(workflows);
+    const data = await getWorkflows();
+    res.json({ message: "Workflows get successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -35,8 +35,8 @@ workflowRouter.get("/", async (req, res) => {
 
 workflowRouter.get("/:id", async (req, res) => {
   try {
-    const workflows = await getWorkflowById(req.params.id);
-    res.json(workflows);
+    const data = await getWorkflowById(req.params.id);
+    res.json({ message: "Workflow get successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -54,8 +54,8 @@ workflowRouter.post("/:id/run", async (req, res) => {
 
 workflowRouter.delete("/:id", validateRequest<IdParameter>(deleteWorkflowSchema), async (req, res) => {
   try {
-    const workflow = await deleteWorkflow(req.params.id);
-    res.json(workflow);
+    const data = await deleteWorkflow(req.params.id);
+    res.json({ message: "Workflow deleted successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

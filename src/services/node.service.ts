@@ -163,7 +163,7 @@ export async function getEntryNode(workflowId: string): Promise<Node | null> {
   }
 }
 
-export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promise<void> {
+export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promise<Node> {
   try {
     const existingNode = await getNodeById(nodeId);
     if (!existingNode) throw new Error(`Node not found with ID: ${nodeId}`);
@@ -171,7 +171,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
       throw new Error(`Node type cannot be updated. Please remove node ${nodeId} and create a new one.`);
     }
 
-    await prisma.node.update({
+    const node = await prisma.node.update({
       where: { id: nodeId },
       data: {
         name: data.name ?? existingNode.name,
@@ -194,6 +194,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
       default:
         break;
     }
+    return node;
   } catch (error) {
     console.error("ERROR: TO UPDATE NODE", error);
     throw error;
@@ -202,6 +203,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
 
 export async function updateNodeParent(nodeId: string, parentId?: string): Promise<void> {
   try {
+    if (nodeId == parentId) return;
     if (!parentId) parentId = undefined;
     await prisma.node.update({ where: { id: nodeId }, data: { parent_id: parentId } });
   } catch (error) {

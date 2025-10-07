@@ -53,7 +53,6 @@ async function handleFixedLoop(
 
   for (let i = 0; i < configs.max_iterations; i++) {
     const nextNodeId = await getNextNodeId(loopNode.id, NodeEdgesCondition.NONE, loopNode.id);
-    console.log("=====>iteration", i, nextNodeId);
     if (!nextNodeId) {
       console.warn(`Loop [${loopNode.id}] stopped early at iteration ${i + 1}, no next node.`);
       break;

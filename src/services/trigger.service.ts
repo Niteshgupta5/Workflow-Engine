@@ -8,12 +8,13 @@ export async function createTrigger(data: CreateTriggerRecord): Promise<Trigger>
     if (isNilOrEmpty(data.configuration)) {
       data.configuration = { [data.type]: {} };
     }
-    if (isNilOrEmpty(data.configuration[data.type])) {
-      (data.configuration[data.type] as JsonConfig)[
-        "endpoint"
-      ] = `${process.env.BASE_URL}/workflow/${data.workflow_id}/run`;
-      (data.configuration[data.type] as JsonConfig)["method"] = HttpMethod.POST;
+    const typeConfig = data.configuration[data.type] as JsonConfig | undefined;
+
+    if (typeConfig) {
+      typeConfig["endpoint"] = `${process.env.BASE_URL}/workflow/${data.workflow_id}/run`;
+      typeConfig["method"] = HttpMethod.POST;
     }
+
     const activeTrigger = await getActiveTriggerByWorkflowId(data.workflow_id);
     if (activeTrigger) {
       throw new Error(
@@ -88,10 +89,11 @@ export async function updateTrigger(id: string, data: UpdateTriggerRecord): Prom
   }
 }
 
-export async function deleteTrigger(id: string): Promise<void> {
+export async function deleteTrigger(id: string): Promise<Trigger> {
   try {
-    await getTriggerById(id);
+    const trigger = await getTriggerById(id);
     await prisma.trigger.delete({ where: { id } });
+    return trigger;
   } catch (error) {
     console.error("ERROR: TO DELETE TRIGGER", error);
     throw error;

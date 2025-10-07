@@ -52,10 +52,11 @@ export async function getWorkflowById(workflowId: string): Promise<Workflow> {
   }
 }
 
-export async function deleteWorkflow(id: string): Promise<void> {
+export async function deleteWorkflow(id: string): Promise<Workflow> {
   try {
-    await getWorkflowById(id);
+    const workflow = await getWorkflowById(id);
     await prisma.workflow.delete({ where: { id } });
+    return workflow;
   } catch (error) {
     console.error("ERROR: TO DELETE WORKFLOW", error);
     throw error;
