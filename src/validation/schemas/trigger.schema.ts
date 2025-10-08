@@ -1,5 +1,4 @@
 import Joi, { AlternativesSchema, ObjectSchema } from "joi";
-import { patterns } from "../constants";
 import {
   AuthConfig,
   AuthType,
@@ -10,6 +9,7 @@ import {
   TriggerType,
   UpdateTriggerRecord,
 } from "../../types";
+import { patterns } from "../../utils";
 
 export const authSchema: ObjectSchema<AuthConfig> = Joi.object({
   type: Joi.string()

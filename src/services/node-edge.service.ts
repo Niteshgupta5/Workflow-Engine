@@ -1,6 +1,6 @@
 import { NodeEdge } from "@prisma/client";
 import { prisma } from "../config";
-import { CreateNodeEdgeRecord, NodeEdgesCondition, NodeType } from "../types";
+import { CreateNodeEdgeRecord, NodeEdgesCondition, NodeType, SwitchCaseCondition } from "../types";
 import { getNodeById, updateNodeParent } from "./node.service";
 
 export async function createNodeEdge(data: CreateNodeEdgeRecord, updateParentGroup: boolean = true): Promise<NodeEdge> {
@@ -26,7 +26,7 @@ export async function createNodeEdge(data: CreateNodeEdgeRecord, updateParentGro
 
 export async function getNextNodeId(
   currentNodeId: string,
-  condition: NodeEdgesCondition,
+  condition: NodeEdgesCondition | SwitchCaseCondition,
   groupId?: string | null
 ): Promise<string | null> {
   try {
@@ -40,6 +40,19 @@ export async function getNextNodeId(
     return edge ? edge.target_node_id : null;
   } catch (error) {
     console.error("ERROR: TO CREATE NODE EDGE", error);
+    throw error;
+  }
+}
+
+export async function getAllOutgoingEdgesForSwitchNode(nodeId: string): Promise<NodeEdge[]> {
+  try {
+    const outgoingEdges = await prisma.nodeEdge.findMany({
+      where: { source_node_id: nodeId },
+      orderBy: { condition: "asc" },
+    });
+    return outgoingEdges;
+  } catch (error) {
+    console.error("ERROR: TO FETCH ALL OUTGOING NODE EDGES", error);
     throw error;
   }
 }

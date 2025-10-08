@@ -1,1 +1,1 @@
-export * from "./node-condition-handler";
+export * from "./conditional-node-handler";

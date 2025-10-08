@@ -23,21 +23,15 @@ export enum NodeType {
   ACTION = "action",
   CONDITIONAL = "conditional",
   LOOP = "loop",
-  // SWITCH = "switch"
+  SWITCH = "switch",
 }
+
+export type SwitchCaseCondition = `case_${number}`;
 
 export enum NodeEdgesCondition {
   ON_TRUE = "on_true",
   ON_FALSE = "on_false",
   NONE = "none",
-}
-
-export enum NodeEdgeType {
-  NORMAL = "normal",
-  CONDITIONAL = "conditional",
-  LOOP_START = "loop_start",
-  LOOP_EXIT = "loop_exit",
-  LOOP_NEXT = "loop_next",
 }
 
 export enum ActionName {

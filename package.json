@@ -8,6 +8,7 @@
     "dev": "nodemon --watch src --ext ts --exec node --es-module-specifier-resolution=node --loader ts-node/esm src/index.ts",
     "start": "node src/index.ts",
     "build": "tsc",
+    "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev"
   },
   "keywords": [],

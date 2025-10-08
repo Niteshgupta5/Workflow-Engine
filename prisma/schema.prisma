@@ -66,6 +66,7 @@ model NodeEdge {
     target_node_id String
     group_id       String?
     condition      String?
+    expression     String?
 
     workflow   Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
     sourceNode Node     @relation("SourceNode", fields: [source_node_id], references: [id], onDelete: Cascade)
@@ -133,7 +134,7 @@ model NodeExecutionLog {
     id           String    @id @default(uuid())
     execution_id String
     node_id      String
-    event_type   String
+    status       String
     started_at   DateTime  @default(now())
     completed_at DateTime?
     data         Json?

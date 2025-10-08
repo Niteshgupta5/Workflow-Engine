@@ -1,6 +1,6 @@
 import { Node, NodeEdge } from "@prisma/client";
 import { JsonConfig } from "./common.types";
-import { ActionName, LoopType, NodeEdgesCondition, NodeType } from "./enums";
+import { ActionName, LoopType, NodeEdgesCondition, NodeType, SwitchCaseCondition } from "./enums";
 
 export interface CreateNodeRecord {
   workflow_id: string;
@@ -9,10 +9,10 @@ export interface CreateNodeRecord {
   prev_node_id?: string;
   next_node_id?: string;
   group_id?: string;
-  condition?: NodeEdgesCondition;
+  condition?: NodeEdgesCondition | SwitchCaseCondition;
   actions?: CreateActionNodeRecord[];
   conditions?: CreateConditionalNodeRecord[];
-  loop_configuration?: LoopConfigurationRecord;
+  configuration?: NodeConfiguration;
 }
 
 export interface UpdateNodeRecord {
@@ -20,7 +20,7 @@ export interface UpdateNodeRecord {
   name: string;
   actions?: UpdateActionNodeRecord[];
   conditions?: UpdateConditionalNodeRecord[];
-  loop_configuration?: UpdateLoopConfigurationRecord;
+  configuration?: NodeConfiguration;
 }
 
 export interface CreateNodeEdgeRecord {
@@ -28,7 +28,8 @@ export interface CreateNodeEdgeRecord {
   source_node_id: string;
   target_node_id: string;
   group_id?: string;
-  condition: NodeEdgesCondition;
+  condition: NodeEdgesCondition | SwitchCaseCondition;
+  expression?: string;
 }
 
 export interface GetNodeEdgeWithRelation extends NodeEdge {
@@ -77,4 +78,15 @@ export interface UpdateLoopConfigurationRecord {
   max_iterations?: number | null;
   exit_condition?: string;
   data_source_path?: string;
+}
+
+export interface SwitchCaseConfiguration {
+  condition: SwitchCaseCondition;
+  expression: string;
+  target_node_id: string;
+}
+
+export interface NodeConfiguration {
+  loop_configuration: LoopConfigurationRecord;
+  cases: SwitchCaseConfiguration[];
 }

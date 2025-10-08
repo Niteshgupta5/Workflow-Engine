@@ -1,7 +1,7 @@
 import type { Node } from "@prisma/client";
 import { getNodeById, logNodeExecution, updateNodeExecutionLog } from "../services";
 import { ExecutionLogEventType, ExecutionStatus, NodeType } from "../types";
-import { handleActionNode, handleConditionalNode } from "./node-task";
+import { handleActionNode, handleConditionalNode, handleSwitchNode } from "./node-task";
 import { handleLoopNode } from "./node-task";
 
 /**
@@ -26,7 +26,7 @@ export const runNode = async (
     const nodeLog = await logNodeExecution({
       execution_id: executionId,
       node_id: node.id,
-      event_type: ExecutionLogEventType.START,
+      status: ExecutionLogEventType.START,
       started_at: new Date(),
       data: context,
     });
@@ -53,6 +53,13 @@ export const runNode = async (
         break;
       }
 
+      case NodeType.SWITCH: {
+        const result = await handleSwitchNode(node, executionId, context, prevNodeId);
+        nodeStatus = result.status;
+        nextNodeId = result.nextNodeId;
+        break;
+      }
+
       default:
         console.warn(`Unknown node type: ${node.type}`);
         nodeStatus = ExecutionStatus.FAILED;
@@ -60,7 +67,7 @@ export const runNode = async (
     }
 
     await updateNodeExecutionLog(nodeLog.id, {
-      event_type: nodeStatus,
+      status: nodeStatus,
       completed_at: new Date(),
       data: context,
     });
@@ -76,7 +83,7 @@ export const runNode = async (
     await logNodeExecution({
       execution_id: executionId,
       node_id: node.id,
-      event_type: ExecutionLogEventType.FAILURE,
+      status: ExecutionLogEventType.FAILURE,
       data: { error: err.message },
     });
     throw err;

@@ -5,7 +5,7 @@ import { createActionNodes, upsertManyActionNodes } from "./action-node.service"
 import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
 import { CreateNodeRecord, GetNodeEdgeWithRelation, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
 import { createLoopConfig, updateLoopConfig } from "./loop-config.service";
-import { START_NODE_ID } from "../utils";
+import { patterns, START_NODE_ID } from "../utils";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
@@ -37,13 +37,14 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         order: i + 1,
       }));
       await createConditionalNodes(updatedConditions);
-    } else if (newNode.type == NodeType.LOOP && rest.loop_configuration) {
+    } else if (newNode.type == NodeType.LOOP && rest.configuration?.loop_configuration) {
+      const config = rest.configuration?.loop_configuration;
       await createLoopConfig({
         node_id: newNode.id,
-        loop_type: rest.loop_configuration.loop_type,
-        max_iterations: rest.loop_configuration.max_iterations ?? null,
-        exit_condition: rest.loop_configuration.exit_condition ?? undefined,
-        data_source_path: rest.loop_configuration.data_source_path ?? undefined,
+        loop_type: config.loop_type,
+        max_iterations: config.max_iterations ?? null,
+        exit_condition: config.exit_condition ?? undefined,
+        data_source_path: config.data_source_path ?? undefined,
       });
 
       await createNodeEdge(
@@ -79,7 +80,12 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           workflow_id,
           source_node_id: newNode.id,
           target_node_id: rest.next_node_id,
-          condition: newNode.type === NodeType.CONDITIONAL ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.NONE,
+          condition:
+            newNode.type === NodeType.CONDITIONAL
+              ? NodeEdgesCondition.ON_TRUE
+              : newNode.type === NodeType.SWITCH
+              ? "case_1"
+              : NodeEdgesCondition.NONE,
           group_id: rest.group_id || undefined,
         });
       } else {
@@ -102,7 +108,12 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           workflow_id,
           source_node_id: newNode.id,
           target_node_id: rest.next_node_id,
-          condition: newNode.type === NodeType.CONDITIONAL ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.NONE,
+          condition:
+            newNode.type === NodeType.CONDITIONAL
+              ? NodeEdgesCondition.ON_TRUE
+              : newNode.type === NodeType.SWITCH
+              ? "case_1"
+              : NodeEdgesCondition.NONE,
           group_id: rest.group_id || undefined,
         },
         false
@@ -124,12 +135,26 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
       `Condition must be ('${NodeEdgesCondition.ON_TRUE}' or '${NodeEdgesCondition.ON_FALSE}') for Conditional parent node`
     );
   }
-  if (prevNode?.type != NodeType.CONDITIONAL && data.condition && data.condition != NodeEdgesCondition.NONE) {
+  if (prevNode?.type == NodeType.SWITCH && data.condition) {
+    const isValidSwitchCase = patterns.switch_case.test(data.condition);
+    // const isNone = data.condition === NodeEdgesCondition.NONE;
+
+    if (!isValidSwitchCase) {
+      throw new Error(`Condition must be a valid switch case (e.g., 'case_1', 'case_2', ...) for Switch parent node`);
+    }
+  }
+
+  if (
+    ![NodeType.CONDITIONAL, NodeType.SWITCH].includes(prevNode?.type as NodeType) &&
+    data.condition &&
+    data.condition != NodeEdgesCondition.NONE
+  ) {
     throw new Error(`Condition must be '${NodeEdgesCondition.NONE}' for non-Conditional parent node`);
   }
-  if (data.type == NodeType.LOOP && !data.loop_configuration)
+
+  if (data.type == NodeType.LOOP && !data.configuration && !data.configuration?.["loop_configuration"])
     throw new Error("Loop Configuration is required for Loop Node");
-  if (data.type != NodeType.LOOP && data.loop_configuration)
+  if (data.type != NodeType.LOOP && data.configuration?.["loop_configuration"])
     throw new Error("Loop Configuration is only for Loop Node");
 }
 
@@ -188,7 +213,8 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
         break;
 
       case NodeType.LOOP:
-        data.loop_configuration && (await updateLoopConfig(nodeId, data.loop_configuration));
+        data.configuration?.loop_configuration &&
+          (await updateLoopConfig(nodeId, data.configuration?.loop_configuration));
         break;
 
       default:
@@ -307,8 +333,8 @@ async function reconnectNodeEdges(
 // async function checkUpdateNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {
 //   if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
 //   if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
-//   if (data.type == NodeType.LOOP && !data.loop_configuration)
+//   if (data.type == NodeType.LOOP && !data.configuration?.loop_configuration)
 //     throw new Error("Loop Configuration is required for Loop Node");
-//   if (data.type != NodeType.LOOP && data.loop_configuration)
+//   if (data.type != NodeType.LOOP && data.configuration?.loop_configuration)
 //     throw new Error("Loop Configuration is only for Loop Node");
 // }
