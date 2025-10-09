@@ -3,16 +3,24 @@ import { prisma } from "../config";
 import { createNodeEdge, deleteNodeEdges } from "./node-edge.service";
 import { createActionNodes, upsertManyActionNodes } from "./action-node.service";
 import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
-import { CreateNodeRecord, GetNodeEdgeWithRelation, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
+import {
+  CreateNodeRecord,
+  GetNodeEdgeWithRelation,
+  NodeEdgesCondition,
+  NodeType,
+  UpdateNodeRecord,
+} from "../types";
 import { createNodeConfig, updateNodeConfig } from "./node-config.service";
-import { patterns, START_NODE_ID } from "../utils";
+import { patterns, START_NODE_ID } from "../constants";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
     const { workflow_id, type, name, ...rest } = data;
 
     const prevNode =
-      rest.prev_node_id && rest.prev_node_id !== START_NODE_ID ? await getNodeById(rest.prev_node_id) : null;
+      rest.prev_node_id && rest.prev_node_id !== START_NODE_ID
+        ? await getNodeById(rest.prev_node_id)
+        : null;
 
     await checkNodeValidations(data, prevNode);
 
@@ -129,8 +137,10 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
 }
 
 async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | null): Promise<void> {
-  if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
-  if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
+  if (data.type == NodeType.ACTION && !data.actions?.length)
+    throw new Error("At least one action needed");
+  if (data.type == NodeType.CONDITIONAL && !data.conditions?.length)
+    throw new Error("At least one condition needed");
   if (prevNode?.type == NodeType.CONDITIONAL && data.condition == NodeEdgesCondition.NONE) {
     throw new Error(
       `Condition must be ('${NodeEdgesCondition.ON_TRUE}' or '${NodeEdgesCondition.ON_FALSE}') for Conditional parent node`
@@ -141,7 +151,9 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
     // const isNone = data.condition === NodeEdgesCondition.NONE;
 
     if (!isValidSwitchCase) {
-      throw new Error(`Condition must be a valid switch case (e.g., 'case_1', 'case_2', ...) for Switch parent node`);
+      throw new Error(
+        `Condition must be a valid switch case (e.g., 'case_1', 'case_2', ...) for Switch parent node`
+      );
     }
   }
 
@@ -150,10 +162,16 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
     data.condition &&
     data.condition != NodeEdgesCondition.NONE
   ) {
-    throw new Error(`Condition must be '${NodeEdgesCondition.NONE}' for non-Conditional parent node`);
+    throw new Error(
+      `Condition must be '${NodeEdgesCondition.NONE}' for non-Conditional parent node`
+    );
   }
 
-  if (data.type == NodeType.LOOP && !data.configuration && !data.configuration?.["loop_configuration"])
+  if (
+    data.type == NodeType.LOOP &&
+    !data.configuration &&
+    !data.configuration?.["loop_configuration"]
+  )
     throw new Error("Loop Configuration is required for Loop Node");
   if (data.type != NodeType.LOOP && data.configuration?.["loop_configuration"])
     throw new Error("Loop Configuration is only for Loop Node");
@@ -199,7 +217,9 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
     const existingNode = await getNodeById(nodeId);
     if (!existingNode) throw new Error(`Node not found with ID: ${nodeId}`);
     if (data.type && data.type !== existingNode.type) {
-      throw new Error(`Node type cannot be updated. Please remove node ${nodeId} and create a new one.`);
+      throw new Error(
+        `Node type cannot be updated. Please remove node ${nodeId} and create a new one.`
+      );
     }
 
     const node = await prisma.node.update({
@@ -275,7 +295,8 @@ async function getPrevNodeEdge(
   if (incomingEdges.length == 1) return incomingEdges[0];
   const edge = incomingEdges.find(
     (edge) =>
-      (!currentNode.parent_id && edge.group_id == null) || (currentNode.parent_id && edge.group_id !== currentNode.id)
+      (!currentNode.parent_id && edge.group_id == null) ||
+      (currentNode.parent_id && edge.group_id !== currentNode.id)
   );
   return edge ?? null;
 }
@@ -292,8 +313,13 @@ async function getNextNodeEdge(
     const isParentGroup = currentNode.parent_id && edge.group_id !== currentNode.id;
 
     if (isNormalGroup || isParentGroup) {
-      if (currentNode.type === NodeType.CONDITIONAL && edge.condition === NodeEdgesCondition.ON_TRUE) return true;
-      if (currentNode.type === NodeType.LOOP && edge.condition === NodeEdgesCondition.NONE) return true;
+      if (
+        currentNode.type === NodeType.CONDITIONAL &&
+        edge.condition === NodeEdgesCondition.ON_TRUE
+      )
+        return true;
+      if (currentNode.type === NodeType.LOOP && edge.condition === NodeEdgesCondition.NONE)
+        return true;
     }
 
     return false;

@@ -1,7 +1,9 @@
 import { NodeExecutionLog, Prisma } from "@prisma/client";
 import { prisma } from "../config";
 
-export async function logNodeExecution(data: Prisma.NodeExecutionLogUncheckedCreateInput): Promise<NodeExecutionLog> {
+export async function logNodeExecution(
+  data: Prisma.NodeExecutionLogUncheckedCreateInput
+): Promise<NodeExecutionLog> {
   try {
     return await prisma.nodeExecutionLog.create({ data });
   } catch (error) {
@@ -10,7 +12,10 @@ export async function logNodeExecution(data: Prisma.NodeExecutionLogUncheckedCre
   }
 }
 
-export async function updateNodeExecutionLog(id: string, data: Prisma.NodeExecutionLogUncheckedUpdateInput) {
+export async function updateNodeExecutionLog(
+  id: string,
+  data: Prisma.NodeExecutionLogUncheckedUpdateInput
+) {
   try {
     return await prisma.nodeExecutionLog.update({ where: { id }, data });
   } catch (error) {

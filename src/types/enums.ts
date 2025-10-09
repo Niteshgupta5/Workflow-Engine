@@ -38,6 +38,7 @@ export enum ActionName {
   SEND_EMAIL = "send_email",
   SEND_HTTP_REQUEST = "send_http_request",
   UPDATE_DATABASE = "update_database",
+  CODE_BLOCK = "code_block",
 }
 
 export enum ExecutionStatus {
@@ -70,4 +71,21 @@ export enum LoopType {
   FOR_EACH = "for_each",
   FIXED = "fixed_count",
   WHILE = "while_loop",
+}
+
+export enum CodeBlockLanguage {
+  JAVASCRIPT = "javascript",
+  TYPESCRIPT = "typescript",
+  PYTHON = "python",
+  PHP = "php",
+  RUBY = "ruby",
+  GO = "go",
+  RUST = "rust",
+  JAVA = "java",
+  C = "c",
+  CPP = "cpp",
+  CSHARP = "csharp",
+  KOTLIN = "kotlin",
+  SHELL = "shell",
+  PERL = "perl",
 }

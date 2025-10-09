@@ -1,7 +1,16 @@
 import pkg from "lodash";
+import { spawn } from "child_process";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { LANGUAGE_CONFIGS } from "../constants";
+import { CodeBlockLanguage, CodeExecutionResult } from "../types";
 const { isEmpty, isNil, isObjectLike, isString } = pkg;
 
-export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
+export function evaluateCondition(
+  expression: string,
+  context: Record<string, any>
+): { status: boolean; value: any } {
   let variableValue = undefined;
   try {
     let value: any = context;
@@ -90,3 +99,158 @@ export function resolveTemplate(value: any, context: any): any {
 
   return value;
 }
+
+/**
+ * Execute a block of code in any supported language.
+ */
+export const executeCodeBlock = async (
+  code: string,
+  context: Record<string, any>,
+  language: CodeBlockLanguage,
+  timeoutMs = 5000,
+  input = ""
+): Promise<CodeExecutionResult> => {
+  const startTime = Date.now();
+
+  try {
+    // Handle inline JS/TS execution with context
+    if (
+      ["javascript", "js", "typescript", "ts"].includes(language) &&
+      Object.keys(context).length > 0
+    ) {
+      const func = new Function("context", code);
+      const output = await Promise.race([
+        Promise.resolve(func(context)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Execution timed out")), timeoutMs)
+        ),
+      ]);
+
+      return {
+        success: true,
+        output: JSON.stringify(output, null, 2),
+        exitCode: 0,
+        executionTime: Date.now() - startTime,
+      };
+    }
+
+    const config = LANGUAGE_CONFIGS[language];
+    if (!config) {
+      return formatExecutionResult(false, `Unsupported language: ${language}`, startTime);
+    }
+
+    // Create a temporary folder and files
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "code-exec-"));
+    const sourceFile = path.join(tempDir, `code${config.fileExtension}`);
+    const compiledFile = path.join(tempDir, "output");
+
+    await fs.writeFile(sourceFile, code, "utf-8");
+
+    let execCommand = config.command;
+    let execArgs: string[] = [];
+
+    // Handle compilation (C, C++, Rust, Java, etc.)
+    if (config.needsCompilation) {
+      const compileResult = await runCodeProcess(
+        config.compileCommand!,
+        config.compileArgs!(sourceFile, compiledFile),
+        "",
+        timeoutMs
+      );
+
+      if (!compileResult.success) {
+        return formatExecutionResult(
+          false,
+          `Compilation failed:\n${compileResult.error}`,
+          startTime
+        );
+      }
+
+      if (language === "java") {
+        const runArgs = config.runArgs!(sourceFile);
+        execCommand = runArgs[0];
+        execArgs = runArgs.slice(1);
+      } else {
+        execCommand = compiledFile;
+      }
+    } else {
+      execArgs = config.runArgs!(sourceFile);
+    }
+
+    // Execute the program
+    const executionResult = await runCodeProcess(execCommand, execArgs, input, timeoutMs);
+
+    return formatExecutionResult(
+      executionResult.success,
+      executionResult.output || executionResult.error,
+      startTime,
+      executionResult
+    );
+  } catch (error: any) {
+    return formatExecutionResult(false, error.message, startTime);
+  }
+};
+
+/**
+ * Run a language command or compiled binary.
+ */
+const runCodeProcess = (
+  command: string,
+  args: string[],
+  input: string,
+  timeoutMs: number
+): Promise<CodeExecutionResult> => {
+  return new Promise((resolve) => {
+    const processRef = spawn(command, args, { stdio: "pipe" });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      processRef.kill("SIGKILL");
+    }, timeoutMs);
+
+    if (input && processRef.stdin) {
+      processRef.stdin.write(input);
+      processRef.stdin.end();
+    }
+
+    processRef.stdout?.on("data", (data) => (stdout += data.toString()));
+    processRef.stderr?.on("data", (data) => (stderr += data.toString()));
+
+    processRef.on("error", (err) => {
+      clearTimeout(timeout);
+      resolve(formatExecutionResult(false, `Execution failed: ${err.message}`));
+    });
+
+    processRef.on("close", (exitCode) => {
+      clearTimeout(timeout);
+
+      if (timedOut) {
+        resolve(formatExecutionResult(false, "Execution timed out", undefined, { timedOut: true }));
+      } else {
+        const success = exitCode === 0;
+        const output = success ? stdout.trim() : stderr.trim() || "Unknown error";
+        resolve(formatExecutionResult(success, output, undefined, { exitCode }));
+      }
+    });
+  });
+};
+
+/**
+ * Format and normalize execution result output.
+ */
+const formatExecutionResult = (
+  success: boolean,
+  output = "",
+  startTime?: number,
+  extra: Partial<CodeExecutionResult> = {}
+): CodeExecutionResult => ({
+  success,
+  output: output.trim(),
+  error: success ? undefined : output.trim(),
+  exitCode: extra.exitCode ?? (success ? 0 : 1),
+  timedOut: extra.timedOut ?? false,
+  executionTime: startTime ? Date.now() - startTime : extra.executionTime ?? 0,
+});
