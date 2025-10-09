@@ -4,7 +4,7 @@ import { createNodeEdge, deleteNodeEdges } from "./node-edge.service";
 import { createActionNodes, upsertManyActionNodes } from "./action-node.service";
 import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
 import { CreateNodeRecord, GetNodeEdgeWithRelation, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../types";
-import { createLoopConfig, updateLoopConfig } from "./loop-config.service";
+import { createNodeConfig, updateNodeConfig } from "./node-config.service";
 import { patterns, START_NODE_ID } from "../utils";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
@@ -39,7 +39,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
       await createConditionalNodes(updatedConditions);
     } else if (newNode.type == NodeType.LOOP && rest.configuration?.loop_configuration) {
       const config = rest.configuration?.loop_configuration;
-      await createLoopConfig({
+      await createNodeConfig({
         node_id: newNode.id,
         loop_type: config.loop_type,
         max_iterations: config.max_iterations ?? null,
@@ -57,6 +57,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         },
         false
       );
+    } else if (newNode.type == NodeType.SWITCH && rest.configuration?.switch_cases) {
     }
 
     // Edge Handling
@@ -219,7 +220,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
 
       case NodeType.LOOP:
         data.configuration?.loop_configuration &&
-          (await updateLoopConfig(nodeId, data.configuration?.loop_configuration));
+          (await updateNodeConfig(nodeId, data.configuration?.loop_configuration));
         break;
 
       default:

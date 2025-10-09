@@ -2,7 +2,7 @@ import { Configuration } from "@prisma/client";
 import { prisma } from "../config";
 import { ConfigurationRecord, UpdateConfigurationRecord } from "../types";
 
-export async function createLoopConfig(data: ConfigurationRecord): Promise<Configuration> {
+export async function createNodeConfig(data: ConfigurationRecord): Promise<Configuration> {
   try {
     return await prisma.configuration.create({ data });
   } catch (error) {
@@ -11,7 +11,7 @@ export async function createLoopConfig(data: ConfigurationRecord): Promise<Confi
   }
 }
 
-export async function getLoopConfig(nodeId: string): Promise<Configuration | null> {
+export async function getNodeConfig(nodeId: string): Promise<Configuration | null> {
   try {
     return await prisma.configuration.findFirst({
       where: { node_id: nodeId },
@@ -22,11 +22,11 @@ export async function getLoopConfig(nodeId: string): Promise<Configuration | nul
   }
 }
 
-export async function updateLoopConfig(nodeId: string, data: UpdateConfigurationRecord): Promise<void> {
+export async function updateNodeConfig(nodeId: string, data: UpdateConfigurationRecord): Promise<void> {
   try {
     if (!data) return;
 
-    const config = await getLoopConfig(nodeId);
+    const config = await getNodeConfig(nodeId);
     if (!config) throw new Error(`Loop configuration not found for node ${nodeId}.`);
 
     await prisma.configuration.update({

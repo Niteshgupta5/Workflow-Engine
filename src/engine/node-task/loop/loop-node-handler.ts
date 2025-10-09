@@ -1,6 +1,6 @@
 import { Configuration, Node } from "@prisma/client";
 import { ExecutionStatus, LoopType, NodeEdgesCondition } from "../../../types";
-import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
+import { getNodeConfig, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
 import { evaluateCondition, resolveTemplate } from "../../../utils";
 import { executeSubgraph } from "./subgraph.executor";
 
@@ -11,7 +11,7 @@ export async function handleLoopNode(
   executionContext: Record<string, any>,
   prevNodeId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
-  const loopConfigs = await getLoopConfig(node.id);
+  const loopConfigs = await getNodeConfig(node.id);
   let nodeStatus = ExecutionStatus.COMPLETED;
   console.log("=====Loop Start=====");
 
