@@ -14,7 +14,7 @@ export const runNode = async (
   executionContext: Record<string, any>,
   prevNodeId: string | null = null,
   groupId: string | null = null
-): Promise<{ nodeResult: Record<string, any>; nextNode: Node | null }> => {
+): Promise<{ nodeResult: Record<string, any>; nextNode: Node | null; error?: Error | undefined }> => {
   let nextNodeId: string | null = null;
   let nodeStatus: ExecutionStatus = ExecutionStatus.COMPLETED;
   console.log("Node Executed", node.name);
@@ -36,6 +36,7 @@ export const runNode = async (
         const result = await handleActionNode(node, nodeLog.id, context, prevNodeId, groupId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
+        if (result.error) throw result.error;
         break;
       }
 
@@ -79,13 +80,20 @@ export const runNode = async (
       },
       nextNode: nextNodeId ? await getNodeById(nextNodeId) : null,
     };
-  } catch (err: any) {
+  } catch (error: any) {
     await logNodeExecution({
       execution_id: executionId,
       node_id: node.id,
       status: ExecutionLogEventType.FAILURE,
-      data: { error: err.message },
+      data: { error: error.message },
     });
-    throw err;
+    return {
+      nodeResult: {
+        name: node.name,
+        status: nodeStatus,
+      },
+      nextNode: null,
+      error,
+    };
   }
 };

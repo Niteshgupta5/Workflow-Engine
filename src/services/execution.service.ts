@@ -27,7 +27,7 @@ export async function updateExecution(
   data: {
     status?: ExecutionStatus;
     context?: any;
-    completed_at: Date;
+    completed_at?: Date;
   }
 ) {
   try {

@@ -1,12 +1,19 @@
-import { NodeEdge } from "@prisma/client";
+import { Node, NodeEdge } from "@prisma/client";
 import { prisma } from "../config";
-import { CreateNodeEdgeRecord, NodeEdgesCondition, NodeType, SwitchCaseCondition } from "../types";
+import {
+  CreateNodeEdgeRecord,
+  NodeEdgesCondition,
+  NodeType,
+  SwitchCaseCondition,
+  SwitchCaseConfiguration,
+  UpdateNodeEdgeRecord,
+} from "../types";
 import { getNodeById, updateNodeParent } from "./node.service";
 
 export async function createNodeEdge(data: CreateNodeEdgeRecord, updateParentGroup: boolean = true): Promise<NodeEdge> {
   try {
     if (data.group_id) {
-      const groupNode = await getNodeById(data.group_id);
+      const groupNode = await getNodeById(data.group_id, data.workflow_id);
       if (groupNode.type !== NodeType.LOOP) {
         throw new Error(`Invalid group assignment: group_id (${data.group_id}) must reference a LOOP node.`);
       }
@@ -47,12 +54,40 @@ export async function getNextNodeId(
 export async function getAllOutgoingEdgesForSwitchNode(nodeId: string): Promise<NodeEdge[]> {
   try {
     const outgoingEdges = await prisma.nodeEdge.findMany({
-      where: { source_node_id: nodeId },
+      where: { source_node_id: nodeId, sourceNode: { type: NodeType.SWITCH } },
       orderBy: { condition: "asc" },
     });
     return outgoingEdges;
   } catch (error) {
     console.error("ERROR: TO FETCH ALL OUTGOING NODE EDGES", error);
+    throw error;
+  }
+}
+
+export async function updateNodeEdge(edgeId: string, data: UpdateNodeEdgeRecord): Promise<NodeEdge> {
+  try {
+    return await prisma.nodeEdge.update({ where: { id: edgeId }, data });
+  } catch (error) {
+    console.error("ERROR: TO UPDATE NODE EDGE", error);
+    throw error;
+  }
+}
+
+export async function updateSwitchCaseExpressions(nodeId: string, switchCases: SwitchCaseConfiguration[]) {
+  try {
+    if (!switchCases.length) return;
+    const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(nodeId);
+    for (const edge of outgoingEdges) {
+      const matchingCase = switchCases.find((c) => c.condition === edge.condition);
+
+      if (matchingCase) {
+        await updateNodeEdge(edge.id, { expression: matchingCase.expression });
+      } else {
+        await deleteNodeEdgeById(edge.id);
+      }
+    }
+  } catch (error) {
+    console.error("ERROR: TO UPDATE NODE EDGE", error);
     throw error;
   }
 }
@@ -85,13 +120,23 @@ export async function getNextNodeAfterLoop(loopNodeId: string): Promise<string |
   }
 }
 
-export async function deleteNodeEdges(workflowId: string, sourceId: string, targetId: string): Promise<void> {
+export async function validateSwitchCaseEdgeDuplication(
+  prevNode: Node,
+  condition: NodeEdgesCondition | SwitchCaseCondition
+): Promise<void> {
+  const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(prevNode.id);
+  const hasEdge = outgoingEdges.some((e) => e.condition == condition);
+  if (hasEdge) throw new Error(`Switch node already has an edge for the case '${condition}'`);
+  return;
+}
+
+export async function deleteNodeEdges(workflowId: string, sourceId: string, targetId: string): Promise<NodeEdge[]> {
   try {
     const nodeEdges = await prisma.nodeEdge.findMany({
       where: { workflow_id: workflowId, source_node_id: sourceId, target_node_id: targetId },
     });
 
-    if (!nodeEdges.length) return;
+    if (!nodeEdges.length) return [];
     await prisma.nodeEdge.deleteMany({
       where: { workflow_id: workflowId, source_node_id: sourceId, target_node_id: targetId },
     });
@@ -99,6 +144,7 @@ export async function deleteNodeEdges(workflowId: string, sourceId: string, targ
     for (const edge of nodeEdges) {
       if (edge.group_id) await updateNodeParent(edge.target_node_id);
     }
+    return nodeEdges;
   } catch (error) {
     console.error("ERROR: TO DELETE NODE EDGES BETWEEN SOURCE AND TARGET", error);
     throw error;
@@ -120,7 +166,7 @@ export async function deleteNodeEdgeById(edgeId: string): Promise<NodeEdge> {
 }
 
 async function validateIncomingEdge(data: CreateNodeEdgeRecord): Promise<void> {
-  const targetNode = await getNodeById(data.target_node_id);
+  const targetNode = await getNodeById(data.target_node_id, data.workflow_id);
 
   const existingEdges = await prisma.nodeEdge.findMany({ where: { target_node_id: data.target_node_id } });
   if (targetNode.type !== NodeType.LOOP) {
@@ -139,7 +185,7 @@ async function validateIncomingEdge(data: CreateNodeEdgeRecord): Promise<void> {
 }
 
 async function validateOutgoingEdge(data: CreateNodeEdgeRecord): Promise<void> {
-  const sourceNode = await getNodeById(data.source_node_id);
+  const sourceNode = await getNodeById(data.source_node_id, data.workflow_id);
   const existingEdges = await prisma.nodeEdge.findMany({
     where: { source_node_id: data.source_node_id },
   });
@@ -182,5 +228,7 @@ async function validateOutgoingEdge(data: CreateNodeEdgeRecord): Promise<void> {
     if (isSubgraphEdge && subgraphEdges.length >= 1) {
       throw new Error(`Loop node ${data.source_node_id} already has a subgraph outgoing edge.`);
     }
+  } else if (sourceNode.type == NodeType.SWITCH) {
+    await validateSwitchCaseEdgeDuplication(sourceNode, data.condition);
   }
 }

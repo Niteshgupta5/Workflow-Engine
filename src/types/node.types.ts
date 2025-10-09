@@ -32,6 +32,13 @@ export interface CreateNodeEdgeRecord {
   expression?: string;
 }
 
+export interface UpdateNodeEdgeRecord {
+  source_node_id?: string;
+  target_node_id?: string;
+  group_id?: string;
+  condition?: NodeEdgesCondition | SwitchCaseCondition;
+  expression?: string;
+}
 export interface GetNodeEdgeWithRelation extends NodeEdge {
   sourceNode?: Node;
   targetNode?: Node;
@@ -65,13 +72,8 @@ export interface UpdateConditionalNodeRecord {
   expression: string;
 }
 
-export interface ConfigurationRecord {
+export interface ConfigurationRecord extends UpdateConfigurationRecord {
   node_id: string;
-  loop_type?: LoopType;
-  max_iterations?: number | null;
-  exit_condition?: string;
-  data_source_path?: string;
-  switch_cases?: JsonConfig;
 }
 
 export interface UpdateConfigurationRecord {
@@ -82,12 +84,19 @@ export interface UpdateConfigurationRecord {
   switch_cases?: JsonConfig;
 }
 
+export interface LoopConfiguration {
+  loop_type?: LoopType;
+  max_iterations?: number | null;
+  exit_condition?: string;
+  data_source_path?: string;
+}
+
 export interface SwitchCaseConfiguration {
   condition: SwitchCaseCondition;
   expression: string;
 }
 
 export interface NodeConfiguration {
-  loop_configuration: ConfigurationRecord;
+  loop_configuration: LoopConfiguration;
   switch_cases: SwitchCaseConfiguration[];
 }
