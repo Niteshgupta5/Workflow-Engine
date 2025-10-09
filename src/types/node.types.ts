@@ -65,28 +65,29 @@ export interface UpdateConditionalNodeRecord {
   expression: string;
 }
 
-export interface LoopConfigurationRecord {
+export interface ConfigurationRecord {
   node_id: string;
-  loop_type: LoopType;
+  loop_type?: LoopType;
   max_iterations?: number | null;
   exit_condition?: string;
   data_source_path?: string;
+  switch_cases?: JsonConfig;
 }
 
-export interface UpdateLoopConfigurationRecord {
-  loop_type: LoopType;
+export interface UpdateConfigurationRecord {
+  loop_type?: LoopType;
   max_iterations?: number | null;
   exit_condition?: string;
   data_source_path?: string;
+  switch_cases?: JsonConfig;
 }
 
 export interface SwitchCaseConfiguration {
   condition: SwitchCaseCondition;
   expression: string;
-  target_node_id: string;
 }
 
 export interface NodeConfiguration {
-  loop_configuration: LoopConfigurationRecord;
-  cases: SwitchCaseConfiguration[];
+  loop_configuration: ConfigurationRecord;
+  switch_cases: SwitchCaseConfiguration[];
 }

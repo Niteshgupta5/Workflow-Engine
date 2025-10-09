@@ -156,6 +156,11 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
     throw new Error("Loop Configuration is required for Loop Node");
   if (data.type != NodeType.LOOP && data.configuration?.["loop_configuration"])
     throw new Error("Loop Configuration is only for Loop Node");
+
+  if (data.type == NodeType.SWITCH && !data.configuration && !data.configuration?.["switch_cases"])
+    throw new Error("Switch Cases is required for Switch Node");
+  if (data.type != NodeType.SWITCH && data.configuration?.["switch_cases"])
+    throw new Error("Switch Cases is only for Switch Node");
 }
 
 export async function getNodeById(id: string): Promise<Node> {

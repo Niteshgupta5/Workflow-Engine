@@ -83,14 +83,13 @@ const loopConfigurationSchema = {
   }),
 };
 
-const switchCaseSchema: { body: ObjectSchema<SwitchCaseConfiguration> } = {
+const switchConfigurationSchema: { body: ObjectSchema<SwitchCaseConfiguration> } = {
   body: Joi.object().keys({
     condition: Joi.string().pattern(patterns.switch_case).required().messages({
       "string.pattern.base": "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
       "any.required": "Condition is required for switch case configuration.",
     }),
     expression: Joi.string().required(),
-    target_node_id: Joi.string().uuid().required(),
   }),
 };
 
@@ -101,12 +100,12 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
       loop_configuration: loopConfigurationSchema.body.required(),
     }),
   },
-  // {
-  //   is: NodeType.SWITCH,
-  //   then: Joi.object({
-  //     cases: Joi.array().items(switchCaseSchema.body).min(1).required(),
-  //   }),
-  // },
+  {
+    is: NodeType.SWITCH,
+    then: Joi.object({
+      switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
+    }),
+  },
 ]);
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
@@ -130,7 +129,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
     }),
 
     configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP),
+      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH),
       then: nodeConfigurationSchema.required(),
       otherwise: Joi.forbidden(),
     }),
@@ -228,7 +227,7 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .optional(),
 
     configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP),
+      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH),
       then: nodeConfigurationSchema.required(),
       otherwise: Joi.forbidden(),
     }).optional(),

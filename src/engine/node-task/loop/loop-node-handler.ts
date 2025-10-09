@@ -1,4 +1,4 @@
-import { LoopConfiguration, Node } from "@prisma/client";
+import { Configuration, Node } from "@prisma/client";
 import { ExecutionStatus, LoopType, NodeEdgesCondition } from "../../../types";
 import { getLoopConfig, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
 import { evaluateCondition, resolveTemplate } from "../../../utils";
@@ -43,7 +43,7 @@ export async function handleLoopNode(
 
 async function handleFixedLoop(
   loopNode: Node,
-  configs: LoopConfiguration,
+  configs: Configuration,
   context: Record<string, any>,
   executionContext: Record<string, any>,
   executionId: string
@@ -70,7 +70,7 @@ async function handleFixedLoop(
 
 async function handleConditionalLoop(
   loopNode: Node,
-  configs: LoopConfiguration,
+  configs: Configuration,
   context: Record<string, any>,
   executionContext: Record<string, any>,
   executionId: string
@@ -107,7 +107,7 @@ async function handleConditionalLoop(
 
 async function handleForEachLoop(
   loopNode: Node,
-  configs: LoopConfiguration,
+  configs: Configuration,
   context: Record<string, any>,
   executionContext: Record<string, any>,
   executionId: string

@@ -1,19 +1,19 @@
-import { LoopConfiguration } from "@prisma/client";
+import { Configuration } from "@prisma/client";
 import { prisma } from "../config";
-import { LoopConfigurationRecord, UpdateLoopConfigurationRecord } from "../types";
+import { ConfigurationRecord, UpdateConfigurationRecord } from "../types";
 
-export async function createLoopConfig(data: LoopConfigurationRecord): Promise<LoopConfiguration> {
+export async function createLoopConfig(data: ConfigurationRecord): Promise<Configuration> {
   try {
-    return await prisma.loopConfiguration.create({ data });
+    return await prisma.configuration.create({ data });
   } catch (error) {
     console.error("ERROR: TO CREATE LOOP CONFIGURATION", error);
     throw error;
   }
 }
 
-export async function getLoopConfig(nodeId: string): Promise<LoopConfiguration | null> {
+export async function getLoopConfig(nodeId: string): Promise<Configuration | null> {
   try {
-    return await prisma.loopConfiguration.findFirst({
+    return await prisma.configuration.findFirst({
       where: { node_id: nodeId },
     });
   } catch (error) {
@@ -22,14 +22,14 @@ export async function getLoopConfig(nodeId: string): Promise<LoopConfiguration |
   }
 }
 
-export async function updateLoopConfig(nodeId: string, data: UpdateLoopConfigurationRecord): Promise<void> {
+export async function updateLoopConfig(nodeId: string, data: UpdateConfigurationRecord): Promise<void> {
   try {
     if (!data) return;
 
     const config = await getLoopConfig(nodeId);
     if (!config) throw new Error(`Loop configuration not found for node ${nodeId}.`);
 
-    await prisma.loopConfiguration.update({
+    await prisma.configuration.update({
       where: { id: config.id },
       data: {
         loop_type: data.loop_type,

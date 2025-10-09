@@ -46,15 +46,16 @@ model Node {
     name        String
     parent_id   String?
     created_at  DateTime @default(now())
+    config      Json?
 
-    workflow          Workflow            @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-    outgoing          NodeEdge[]          @relation("SourceNode")
-    incoming          NodeEdge[]          @relation("TargetNode")
-    group             NodeEdge[]          @relation("GroupNode")
-    actionNode        ActionNode[]
-    condition         ConditionalNode[]
-    logs              NodeExecutionLog[]
-    LoopConfiguration LoopConfiguration[]
+    workflow      Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    outgoing      NodeEdge[]         @relation("SourceNode")
+    incoming      NodeEdge[]         @relation("TargetNode")
+    group         NodeEdge[]         @relation("GroupNode")
+    actionNode    ActionNode[]
+    condition     ConditionalNode[]
+    logs          NodeExecutionLog[]
+    Configuration Configuration[]
 
     @@map("nodes")
 }
@@ -101,17 +102,18 @@ model ConditionalNode {
     @@map("conditional_nodes")
 }
 
-model LoopConfiguration {
+model Configuration {
     id               String  @id @default(uuid())
     node_id          String
-    loop_type        String
+    loop_type        String?
     max_iterations   Int?
     exit_condition   String?
     data_source_path String?
+    switch_cases     Json?
 
     node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
 
-    @@map("loop_configurations")
+    @@map("configurations")
 }
 
 model Execution {
