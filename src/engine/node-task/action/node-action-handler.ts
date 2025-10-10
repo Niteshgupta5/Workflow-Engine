@@ -13,9 +13,10 @@ export async function handleActionNode(
   context: Record<string, any>,
   prevNodeId: string | null = null,
   groupId: string | null = null
-): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
+): Promise<{ status: ExecutionStatus; nextNodeId: string | null; error?: Error }> {
   let nodeStatus = ExecutionStatus.COMPLETED;
   let prevActionId: string | null = null; // To fetch results of previous action if needed
+  let error: Error | undefined = undefined;
 
   const nodeActions = await getNodeActions(node.id);
 
@@ -34,12 +35,11 @@ export async function handleActionNode(
 
     while (attempts <= maxAttempts) {
       try {
-        attempts++;
         const result = await actionHandlers[action.action_name](action, context);
         context.output[action.id] = {
           action_name: action.action_name,
           result,
-          retry_attempts: attempts - 1,
+          retry_attempts: attempts,
         };
 
         await updateTaskLog(taskLog.id, {
@@ -55,12 +55,16 @@ export async function handleActionNode(
         context.output[action.id] = {
           action_name: action.action_name,
           result: { error: String(err) },
-          retry_attempts: attempts - 1,
+          retry_attempts: attempts,
         };
 
-        if (attempts - 1 <= maxAttempts) {
-          console.warn(`Action ${action.action_name} failed on attempt ${attempts - 1}, retrying in ${delayMs}ms...`);
+        if (attempts < maxAttempts) {
+          console.warn(`Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`);
+          attempts++;
           await sleep(delayMs);
+        } else {
+          error = err as Error;
+          break;
         }
       }
     }
@@ -68,5 +72,5 @@ export async function handleActionNode(
   }
 
   const nextNodeId = await getNextNodeId(node.id, NodeEdgesCondition.NONE, groupId);
-  return { status: nodeStatus, nextNodeId };
+  return { status: nodeStatus, nextNodeId, error };
 }

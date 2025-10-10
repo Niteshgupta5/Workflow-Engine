@@ -1,6 +1,6 @@
 import { Node, NodeEdge } from "@prisma/client";
-import { getAllOutgoingEdgesForSwitchNode, getNextNodeAfterLoop, getNextNodeId } from "../../../services";
-import { ExecutionStatus } from "../../../types";
+import { getAllOutgoingEdgesForSwitchNode } from "../../../services";
+import { ExecutionStatus, NodeEdgesCondition } from "../../../types";
 import { evaluateCondition } from "../../../utils";
 
 /**
@@ -23,6 +23,10 @@ export async function handleSwitchNode(
   let selectedEdge: NodeEdge | undefined;
 
   for (const edge of outgoingEdges) {
+    if (edge.condition === NodeEdgesCondition.NONE) {
+      selectedEdge ??= edge; // fallback edge
+      continue;
+    }
     if (edge.expression) {
       const result = evaluateCondition(edge.expression, context);
       context.output[node.id] = {

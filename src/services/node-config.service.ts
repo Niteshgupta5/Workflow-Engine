@@ -36,6 +36,7 @@ export async function updateNodeConfig(nodeId: string, data: UpdateConfiguration
         max_iterations: data.max_iterations,
         exit_condition: data.exit_condition,
         data_source_path: data.data_source_path,
+        switch_cases: data.switch_cases,
       },
     });
   } catch (error) {

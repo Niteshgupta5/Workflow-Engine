@@ -28,18 +28,27 @@ export async function runWorkflow(
   let currentNode = await getEntryNode(workflow.id); // entry node
   let prevNodeId = null; // To fetch result of previous node if needed
   while (currentNode) {
-    const result = await runNode(executionId, currentNode, inputContext, context, prevNodeId);
-    context.output[currentNode.id] = result.nodeResult;
-    prevNodeId = currentNode.id;
-    currentNode = result.nextNode;
+    try {
+      const result = await runNode(executionId, currentNode, inputContext, context, prevNodeId);
+      context.output[currentNode.id] = result.nodeResult;
+      if (result.error) throw result.error;
+      prevNodeId = currentNode.id;
+      currentNode = result.nextNode;
+      await updateExecution(executionId, {
+        status: ExecutionStatus.COMPLETED,
+        completed_at: new Date(),
+        context,
+      });
+      console.log(`✅ Execution ${executionId} completed`);
+    } catch (error) {
+      await updateExecution(executionId, {
+        status: ExecutionStatus.FAILED,
+        context,
+      });
+      console.log(`✅ Execution ${executionId} failed`);
+      throw error;
+    }
   }
-  await updateExecution(executionId, {
-    status: ExecutionStatus.COMPLETED,
-    completed_at: new Date(),
-    context,
-  });
-
-  console.log(`✅ Execution ${executionId} completed`);
 }
 
 export async function executeTrigger(
