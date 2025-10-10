@@ -223,6 +223,14 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .required(),
     name: Joi.string().min(3).max(255).required(),
 
+    transformation_type: Joi.when("type", {
+      is: NodeType.DATA_TRANSFORM,
+      then: Joi.string()
+        .valid(...Object.values(TransformationType))
+        .required(),
+      otherwise: Joi.forbidden(),
+    }),
+
     actions: Joi.array()
       .items(updateActionSchema.body)
       .when("type", {
@@ -242,7 +250,7 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .optional(),
 
     configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH),
+      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH, NodeType.DATA_TRANSFORM),
       then: nodeConfigurationSchema.required(),
       otherwise: Joi.forbidden(),
     }).optional(),

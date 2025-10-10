@@ -1,3 +1,5 @@
+import { TransformationType } from "./enums";
+
 export type AggregationType = "sum" | "avg" | "count" | "min" | "max";
 export type ConversionType = "string" | "number" | "boolean" | "date";
 export type DateUnits = "days" | "months" | "years" | "hours" | "minutes";
@@ -97,3 +99,9 @@ export type DataTransformationRuleConfig =
   | DateFormatRule
   | DateOperationRule
   | TimestampRule;
+
+export interface createDataTransformNode {
+  node_id: string;
+  transformation_type: TransformationType;
+  transform_rules: DataTransformationRuleConfig;
+}
