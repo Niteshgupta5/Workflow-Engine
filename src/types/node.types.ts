@@ -1,11 +1,13 @@
 import { Node, NodeEdge } from "@prisma/client";
 import { JsonConfig } from "./common.types";
-import { ActionName, LoopType, NodeEdgesCondition, NodeType, SwitchCaseCondition } from "./enums";
+import { ActionName, LoopType, NodeEdgesCondition, NodeType, SwitchCaseCondition, TransformationType } from "./enums";
+import { DataTransformationRuleConfig } from "./data-transform.types";
 
 export interface CreateNodeRecord {
   workflow_id: string;
   type: NodeType;
   name: string;
+  transformation_type?: TransformationType;
   prev_node_id?: string;
   next_node_id?: string;
   group_id?: string;
@@ -99,4 +101,5 @@ export interface SwitchCaseConfiguration {
 export interface NodeConfiguration {
   loop_configuration: LoopConfiguration;
   switch_cases: SwitchCaseConfiguration[];
+  transform_rules: DataTransformationRuleConfig;
 }

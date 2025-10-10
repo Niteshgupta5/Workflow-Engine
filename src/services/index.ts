@@ -7,3 +7,4 @@ export * from "./action-node.service";
 export * from "./node-edge.service";
 export * from "./conditional-node.service";
 export * from "./node-config.service";
+export * from "./category.service";

@@ -19,6 +19,7 @@ import {
 } from "../types";
 import { createNodeConfig, getNodeConfig, updateNodeConfig } from "./node-config.service";
 import { patterns, START_NODE_ID } from "../utils";
+import { getCategoryIdByNodeType } from "./category.service";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
@@ -32,8 +33,9 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
     await checkNodeValidations(data, prevNode);
 
     // Create New Node
+    const categoryId = await getCategoryIdByNodeType(type);
     const newNode = await prisma.node.create({
-      data: { workflow_id, type, name, parent_id: rest.group_id || undefined },
+      data: { workflow_id, type, name, parent_id: rest.group_id || undefined, category_id: categoryId },
     });
 
     // Handle child tables (actions, conditions, loop config)

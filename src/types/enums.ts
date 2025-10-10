@@ -24,6 +24,7 @@ export enum NodeType {
   CONDITIONAL = "conditional",
   LOOP = "loop",
   SWITCH = "switch",
+  DATA_TRANSFORM = "data_transform",
 }
 
 export type SwitchCaseCondition = `case_${number}`;
@@ -70,4 +71,33 @@ export enum LoopType {
   FOR_EACH = "for_each",
   FIXED = "fixed_count",
   WHILE = "while_loop",
+}
+
+export enum NodeCategoryType {
+  ACTION = "action",
+  FLOW_CONTROL = "flow_control",
+  DATA_TRANSFORM = "data_transform",
+}
+
+export enum TransformationType {
+  MAP = "map",
+  RENAME = "rename",
+  REMOVE = "remove",
+  COPY = "copy",
+  FILTER = "filter",
+  AGGREGATE = "aggregate",
+  GROUP = "group",
+  CONCAT = "concat",
+  FORMULA = "formula",
+  CODE_BLOCK = "code_block",
+  CONVERT_TYPE = "convert_type",
+  MERGE = "merge",
+  SPLIT = "split",
+  // UPPERCASE = "uppercase",
+  // LOWERCASE = "lowercase",
+  // SUBSTRING = "substring",
+  // REPLACE = "replace",
+  DATE_FORMAT = "date_format",
+  DATE_OPERATION = "date_operation",
+  TIMESTAMP = "timestamp",
 }
