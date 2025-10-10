@@ -23,7 +23,6 @@ import { createNodeConfig, getNodeConfig, updateNodeConfig } from "./node-config
 import { patterns, START_NODE_ID } from "../utils";
 import { getCategoryIdByNodeType } from "./category.service";
 import { createDataTransformNodes } from "./data-transformation-node.service";
-import { isArray } from "lodash";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
@@ -92,7 +91,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         node_id: newNode.id,
         transformation_type: rest.transformation_type,
         transform_rules:
-          rest.transformation_type == TransformationType.MAP && isArray(rest.configuration.transform_rules)
+          rest.transformation_type == TransformationType.MAP && Array.isArray(rest.configuration.transform_rules)
             ? { map: rest.configuration.transform_rules }
             : (rest.configuration.transform_rules as JsonConfig),
       });
