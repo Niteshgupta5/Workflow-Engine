@@ -1,8 +1,13 @@
-import { TransformationType } from "./enums";
-
-export type AggregationType = "sum" | "avg" | "count" | "min" | "max";
-export type ConversionType = "string" | "number" | "boolean" | "date";
-export type DateUnits = "days" | "months" | "years" | "hours" | "minutes";
+import {
+  AggregationOperation,
+  CodeBlockLanguage,
+  ConversionType,
+  DateOperation,
+  MergeStrategy,
+  TimestampOperation,
+  TimeUnit,
+  TransformationType,
+} from "./enums";
 
 export interface MapRule {
   source: string; // JSON path in input, e.g., "$.input.first_name"
@@ -28,7 +33,7 @@ export interface AggregateRule {
   groupBy: string[];
   operations: {
     field: string; // field to aggregate
-    type: AggregationType; // aggregation type
+    type: AggregationOperation; // aggregation type
     target: string; // path in output
   }[];
 }
@@ -53,55 +58,84 @@ export interface ConvertTypeRule {
 }
 
 export interface MergeRule {
-  sources: string[];
+  source: string;
   target: string;
+  strategy?: MergeStrategy;
 }
 
 export interface SplitRule {
   field: string;
   separator: string;
   target: string;
+  limit?: number;
+  trim?: boolean;
 }
 
 export interface DateFormatRule {
   field: string;
   format: string; // e.g., "YYYY-MM-DD"
   target?: string;
+  timezone?: string;
 }
 
 export interface DateOperationRule {
   field: string;
-  operation: "add" | "subtract";
+  operation: DateOperation;
   value: number;
-  unit: DateUnits;
+  unit: TimeUnit;
   target?: string;
 }
 
 export interface TimestampRule {
   field?: string; // optional, can generate current timestamp
   target: string;
+  unit?: TimeUnit;
+  operation?: TimestampOperation;
+}
+
+export interface CodeBlockRule {
+  language: CodeBlockLanguage;
+  expression: string;
+}
+export interface TransformationRuleMap {
+  [TransformationType.MAP]: { map: MapRule[] };
+  [TransformationType.RENAME]: RenameRule;
+  [TransformationType.REMOVE]: RemoveRule;
+  [TransformationType.FILTER]: FilterRule;
+  [TransformationType.CODE_BLOCK]: CodeBlockRule;
+  [TransformationType.CONVERT_TYPE]: ConvertTypeRule;
+  [TransformationType.MERGE]: MergeRule;
+  [TransformationType.SPLIT]: SplitRule;
+  [TransformationType.DATE_FORMAT]: DateFormatRule;
+  [TransformationType.DATE_OPERATION]: DateOperationRule;
+  [TransformationType.TIMESTAMP]: TimestampRule;
+  [TransformationType.COPY]: CopyRule;
+  [TransformationType.AGGREGATE]: AggregateRule;
+  [TransformationType.GROUP]: GroupRule;
+  [TransformationType.CONCAT]: ConcatRule;
 }
 
 export type DataTransformationRuleConfig =
   | { map: MapRule[] }
   | RenameRule
   | RemoveRule
-  | CopyRule
   | FilterRule
-  | AggregateRule
-  | GroupRule
-  | ConcatRule
-  | CustomRule
-  | CustomRule
+  | CodeBlockRule
   | ConvertTypeRule
   | MergeRule
   | SplitRule
   | DateFormatRule
   | DateOperationRule
-  | TimestampRule;
+  | TimestampRule
+  | CopyRule
+  | AggregateRule
+  | GroupRule
+  | ConcatRule;
 
 export interface createDataTransformNode {
   node_id: string;
   transformation_type: TransformationType;
   transform_rules: DataTransformationRuleConfig;
 }
+
+export type DataObject = Record<string, any>;

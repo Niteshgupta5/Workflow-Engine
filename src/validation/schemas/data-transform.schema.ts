@@ -1,9 +1,21 @@
 import Joi from "joi";
-import { TransformationType } from "../../types";
+import {
+  AggregationOperation,
+  CodeBlockLanguage,
+  ConversionType,
+  DateOperation,
+  MergeStrategy,
+  TimestampOperation,
+  TimeUnit,
+  TransformationType,
+} from "../../types";
 
 const mapRule = Joi.object({
   source: Joi.string().required(),
   target: Joi.string().required(),
+  strategy: Joi.string()
+    .valid(...Object.values(MergeStrategy))
+    .optional(),
 });
 
 const renameRule = Joi.object({
@@ -25,7 +37,9 @@ const aggregateRule = Joi.object({
     .items(
       Joi.object({
         field: Joi.string().required(),
-        type: Joi.string().valid("sum", "avg", "count", "min", "max").required(),
+        type: Joi.string()
+          .valid(...Object.values(AggregationOperation))
+          .required(),
         target: Joi.string().required(),
       })
     )
@@ -44,12 +58,16 @@ const concatRule = Joi.object({
 
 const codeBlockRule = Joi.object({
   expression: Joi.string().required(),
-  language: Joi.string().valid("js", "py").required(),
+  language: Joi.string()
+    .valid(...Object.values(CodeBlockLanguage))
+    .required(),
 });
 
 const convertTypeRule = Joi.object({
   field: Joi.string().required(),
-  toType: Joi.string().valid("string", "number", "boolean", "date").required(),
+  toType: Joi.string()
+    .valid(...Object.values(ConversionType))
+    .required(),
 });
 
 const mergeRule = Joi.object({
@@ -61,25 +79,38 @@ const splitRule = Joi.object({
   field: Joi.string().required(),
   separator: Joi.string().required(),
   target: Joi.string().required(),
+  limit: Joi.number().optional(),
+  trim: Joi.boolean().optional(),
 });
 
 const dateFormatRule = Joi.object({
   field: Joi.string().required(),
   format: Joi.string().required(),
   target: Joi.string().optional(),
+  timezone: Joi.string().optional(),
 });
 
 const dateOperationRule = Joi.object({
   field: Joi.string().required(),
-  operation: Joi.string().valid("add", "subtract").required(),
+  operation: Joi.string()
+    .valid(...Object.values(DateOperation))
+    .required(),
   value: Joi.number().required(),
-  unit: Joi.string().valid("days", "months", "years", "hours", "minutes").required(),
+  unit: Joi.string()
+    .valid(...Object.values(TimeUnit))
+    .required(),
   target: Joi.string().optional(),
 });
 
 const timestampRule = Joi.object({
   field: Joi.string().optional(),
   target: Joi.string().required(),
+  unit: Joi.string()
+    .valid(...Object.values(TimeUnit))
+    .optional(),
+  operation: Joi.string()
+    .valid(...Object.values(TimestampOperation))
+    .optional(),
 });
 
 export const dataTransformRuleSchema = Joi.alternatives().conditional("...transformation_type", [

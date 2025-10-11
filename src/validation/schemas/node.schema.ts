@@ -8,46 +8,56 @@ import {
   NodeConfiguration,
   NodeEdgesCondition,
   NodeType,
+  CodeBlockLanguage,
   SwitchCaseConfiguration,
   TransformationType,
   UpdateNodeRecord,
 } from "../../types";
-import { patterns, START_NODE_ID } from "../../utils";
+import { patterns, START_NODE_ID } from "../../constants";
 import { dataTransformRuleSchema } from "./data-transform.schema";
 
-const actionSchema = {
-  body: Joi.object().keys({
+const baseParamsSchema = Joi.object({
+  table: Joi.string().when(Joi.ref("...action_name"), {
+    is: ActionName.UPDATE_DATABASE,
+    then: Joi.required(),
+    otherwise: Joi.forbidden(),
+  }),
+
+  data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
+
+  url: Joi.string()
+    .pattern(patterns.url)
+    .when(Joi.ref("...action_name"), {
+      is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
+      then: Joi.required(),
+      otherwise: Joi.forbidden(),
+    }),
+
+  method: Joi.string()
+    .valid(...Object.values(HttpMethod))
+    .when(Joi.ref("...action_name"), {
+      is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
+      then: Joi.required(),
+      otherwise: Joi.forbidden(),
+    }),
+
+  body: Joi.object().optional(),
+});
+
+const codeBlockParamsSchema = Joi.object({
+  code: Joi.string().required(),
+  language: Joi.string()
+    .valid(...Object.values(CodeBlockLanguage))
+    .required(),
+});
+
+export const actionSchema = {
+  body: Joi.object({
     action_name: Joi.string()
       .valid(...Object.values(ActionName))
       .required(),
 
-    params: Joi.object({
-      table: Joi.string().when(Joi.ref("...action_name"), {
-        is: ActionName.UPDATE_DATABASE,
-        then: Joi.required(),
-        otherwise: Joi.forbidden(),
-      }),
-
-      data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
-
-      url: Joi.string()
-        .pattern(patterns.url)
-        .when(Joi.ref("...action_name"), {
-          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-          then: Joi.required(),
-          otherwise: Joi.forbidden(),
-        }),
-
-      method: Joi.string()
-        .valid(...Object.values(HttpMethod))
-        .when(Joi.ref("...action_name"), {
-          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-          then: Joi.required(),
-          otherwise: Joi.forbidden(),
-        }),
-
-      body: Joi.object().optional(),
-    }).required(),
+    params: baseParamsSchema.required(),
 
     retry_attempts: Joi.number().integer().min(0).max(3).optional(),
     retry_delay_ms: Joi.number().integer().min(0).optional(),
@@ -85,36 +95,40 @@ const loopConfigurationSchema = {
   }),
 };
 
-const switchConfigurationSchema: { body: ObjectSchema<SwitchCaseConfiguration> } = {
+const switchConfigurationSchema: {
+  body: ObjectSchema<SwitchCaseConfiguration>;
+} = {
   body: Joi.object().keys({
     condition: Joi.string().pattern(patterns.switch_case).required().messages({
-      "string.pattern.base": "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
+      "string.pattern.base":
+        "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
       "any.required": "Condition is required for switch case configuration.",
     }),
     expression: Joi.string().required(),
   }),
 };
 
-export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Joi.alternatives().conditional("type", [
-  {
-    is: NodeType.LOOP,
-    then: Joi.object({
-      loop_configuration: loopConfigurationSchema.body.required(),
-    }),
-  },
-  {
-    is: NodeType.SWITCH,
-    then: Joi.object({
-      switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
-    }),
-  },
-  {
-    is: NodeType.DATA_TRANSFORM,
-    then: Joi.object({
-      transform_rules: dataTransformRuleSchema.required(),
-    }),
-  },
-]);
+export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> =
+  Joi.alternatives().conditional("type", [
+    {
+      is: NodeType.LOOP,
+      then: Joi.object({
+        loop_configuration: loopConfigurationSchema.body.required(),
+      }),
+    },
+    {
+      is: NodeType.SWITCH,
+      then: Joi.object({
+        switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
+      }),
+    },
+    {
+      is: NodeType.DATA_TRANSFORM,
+      then: Joi.object({
+        transform_rules: dataTransformRuleSchema.required(),
+      }),
+    },
+  ]);
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
   body: Joi.object().keys({

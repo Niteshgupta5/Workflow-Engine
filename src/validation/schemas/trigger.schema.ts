@@ -9,7 +9,7 @@ import {
   TriggerType,
   UpdateTriggerRecord,
 } from "../../types";
-import { patterns } from "../../utils";
+import { patterns } from "../../constants";
 
 export const authSchema: ObjectSchema<AuthConfig> = Joi.object({
   type: Joi.string()
@@ -37,59 +37,60 @@ export const authSchema: ObjectSchema<AuthConfig> = Joi.object({
   }),
 }).default({ type: AuthType.NONE });
 
-export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi.alternatives().conditional("type", [
-  {
-    is: TriggerType.WEBHOOK,
-    then: Joi.object({
-      webhook: Joi.object({
-        endpoint: Joi.string().pattern(patterns.url).required(),
-        method: Joi.string()
-          .valid(...Object.values(HttpMethod))
-          .required(),
-        authentication: authSchema,
-      }).required(),
-    }),
-  },
-  {
-    is: TriggerType.SCHEDULE,
-    then: Joi.object({
-      schedule: Joi.object({
-        cron_expression: Joi.string().pattern(patterns.cron).required(),
-        timezone: Joi.string().optional(),
-        method: Joi.string()
-          .valid(...Object.values(HttpMethod))
-          .required(),
-        endpoint: Joi.string().pattern(patterns.url).required(),
-        authentication: authSchema,
-      }).required(),
-    }),
-  },
-  {
-    is: TriggerType.EVENT,
-    then: Joi.object({
-      event: Joi.object({
-        event_name: Joi.string().max(255).required(),
-        method: Joi.string()
-          .valid(...Object.values(HttpMethod))
-          .optional(),
-        endpoint: Joi.string().pattern(patterns.url).optional(),
-        authentication: authSchema,
-      }).required(),
-    }),
-  },
-  {
-    is: TriggerType.HTTP_REQUEST,
-    then: Joi.object({
-      http_request: Joi.object({
-        endpoint: Joi.string().pattern(patterns.url).required(),
-        method: Joi.string()
-          .valid(...Object.values(HttpMethod))
-          .required(),
-        authentication: authSchema,
-      }).required(),
-    }),
-  },
-]);
+export const configurationSchema: AlternativesSchema<TriggerConfiguration> =
+  Joi.alternatives().conditional("type", [
+    {
+      is: TriggerType.WEBHOOK,
+      then: Joi.object({
+        webhook: Joi.object({
+          endpoint: Joi.string().pattern(patterns.url).required(),
+          method: Joi.string()
+            .valid(...Object.values(HttpMethod))
+            .required(),
+          authentication: authSchema,
+        }).required(),
+      }),
+    },
+    {
+      is: TriggerType.SCHEDULE,
+      then: Joi.object({
+        schedule: Joi.object({
+          cron_expression: Joi.string().pattern(patterns.cron).required(),
+          timezone: Joi.string().optional(),
+          method: Joi.string()
+            .valid(...Object.values(HttpMethod))
+            .required(),
+          endpoint: Joi.string().pattern(patterns.url).required(),
+          authentication: authSchema,
+        }).required(),
+      }),
+    },
+    {
+      is: TriggerType.EVENT,
+      then: Joi.object({
+        event: Joi.object({
+          event_name: Joi.string().max(255).required(),
+          method: Joi.string()
+            .valid(...Object.values(HttpMethod))
+            .optional(),
+          endpoint: Joi.string().pattern(patterns.url).optional(),
+          authentication: authSchema,
+        }).required(),
+      }),
+    },
+    {
+      is: TriggerType.HTTP_REQUEST,
+      then: Joi.object({
+        http_request: Joi.object({
+          endpoint: Joi.string().pattern(patterns.url).required(),
+          method: Joi.string()
+            .valid(...Object.values(HttpMethod))
+            .required(),
+          authentication: authSchema,
+        }).required(),
+      }),
+    },
+  ]);
 
 export const createTriggerSchema: { body: ObjectSchema<CreateTriggerRecord> } = {
   body: Joi.object().keys({

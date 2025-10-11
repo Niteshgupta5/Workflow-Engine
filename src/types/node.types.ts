@@ -1,6 +1,13 @@
 import { Node, NodeEdge } from "@prisma/client";
 import { JsonConfig } from "./common.types";
-import { ActionName, LoopType, NodeEdgesCondition, NodeType, SwitchCaseCondition, TransformationType } from "./enums";
+import {
+  ActionName,
+  LoopType,
+  NodeEdgesCondition,
+  NodeType,
+  SwitchCaseCondition,
+  TransformationType,
+} from "./enums";
 import { DataTransformationRuleConfig } from "./data-transform.types";
 
 export interface CreateNodeRecord {

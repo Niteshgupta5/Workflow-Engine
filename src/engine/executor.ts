@@ -1,4 +1,10 @@
-import { createExecution, getEntryNode, getTriggerById, getWorkflowById, updateExecution } from "../services";
+import {
+  createExecution,
+  getEntryNode,
+  getTriggerById,
+  getWorkflowById,
+  updateExecution,
+} from "../services";
 import { ExecutionStatus, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
@@ -48,7 +54,12 @@ export async function runWorkflow(
 export async function executeTrigger(
   triggerId: string,
   inputContext: Object
-): Promise<{ status: number; executionId: string; message?: string; error?: string }> {
+): Promise<{
+  status: number;
+  executionId: string;
+  message?: string;
+  error?: string;
+}> {
   let execution;
   const trigger = await getTriggerById(triggerId);
   const config = trigger.configuration as TriggerConfiguration;
@@ -91,13 +102,17 @@ export async function executeTrigger(
         const eventConfig = config[TriggerType.EVENT];
         if (!eventConfig) throw new Error("Invalid EVENT configuration");
 
-        await httpRequest(eventConfig.method, eventConfig.endpoint, {
-          executionId: execution.id,
-          context: {
-            eventName: eventConfig.event_name,
-            input: inputContext,
-          },
-        });
+        await httpRequest(
+          eventConfig.method,
+          `${process.env.BASE_URL}/workflow/${trigger.workflow_id}/run`,
+          {
+            executionId: execution.id,
+            context: {
+              eventName: eventConfig.event_name,
+              input: inputContext,
+            },
+          }
+        );
         break;
 
       case TriggerType.HTTP_REQUEST:
@@ -111,7 +126,11 @@ export async function executeTrigger(
         break;
 
       default:
-        return { status: 400, error: "Unsupported trigger type", executionId: execution.id };
+        return {
+          status: 400,
+          error: "Unsupported trigger type",
+          executionId: execution.id,
+        };
     }
 
     return {

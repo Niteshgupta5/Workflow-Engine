@@ -1,6 +1,6 @@
 import Joi, { ObjectSchema } from "joi";
 import { CreateNodeEdgeRecord, IdParameter, NodeEdgesCondition } from "../../types";
-import { patterns } from "../../utils";
+import { patterns } from "../../constants";
 
 export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
   body: Joi.object().keys({

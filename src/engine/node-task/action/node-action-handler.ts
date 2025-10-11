@@ -10,7 +10,7 @@ import { actionHandlers } from "./action-handler";
 export async function handleActionNode(
   node: Node,
   nodeLogId: string,
-  context: Record<string, any>,
+  context: Record<string, any> = {},
   prevNodeId: string | null = null,
   groupId: string | null = null
 ): Promise<{ status: ExecutionStatus; nextNodeId: string | null; error?: Error }> {
@@ -49,7 +49,10 @@ export async function handleActionNode(
 
         break;
       } catch (err) {
-        await updateTaskLog(taskLog.id, { status: TaskStatus.FAILED, data: { error: String(err) } });
+        await updateTaskLog(taskLog.id, {
+          status: TaskStatus.FAILED,
+          data: { error: String(err) },
+        });
         nodeStatus = ExecutionStatus.FAILED;
 
         context.output[action.id] = {
@@ -59,7 +62,9 @@ export async function handleActionNode(
         };
 
         if (attempts < maxAttempts) {
-          console.warn(`Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`);
+          console.warn(
+            `Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`
+          );
           attempts++;
           await sleep(delayMs);
         } else {
@@ -68,6 +73,7 @@ export async function handleActionNode(
         }
       }
     }
+    context.lastExecutedSubTaskId = action.id;
     prevActionId = action.id;
   }
 
