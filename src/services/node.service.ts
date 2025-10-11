@@ -22,7 +22,11 @@ import {
 import { createNodeConfig, getNodeConfig, updateNodeConfig } from "./node-config.service";
 import { patterns, START_NODE_ID } from "../utils";
 import { getCategoryIdByNodeType } from "./category.service";
-import { createDataTransformNodes } from "./data-transformation-node.service";
+import {
+  createDataTransformNodes,
+  getDataTransformNodeById,
+  updateDataTransformRules,
+} from "./data-transformation-node.service";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
@@ -205,6 +209,11 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
     if (data.type && data.type !== existingNode.type) {
       throw new Error(`Node type cannot be updated. Please remove node ${nodeId} and create a new one.`);
     }
+    const dataTransformNode =
+      existingNode.type == NodeType.DATA_TRANSFORM ? await getDataTransformNodeById(existingNode.id) : undefined;
+    if (data.transformation_type && data.transformation_type !== dataTransformNode?.transformation_type) {
+      throw new Error(`"transformation_type" cannot be updated. Please remove node ${nodeId} and create a new one.`);
+    }
 
     const node = await prisma.node.update({
       where: { id: nodeId },
@@ -233,6 +242,15 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
           await updateSwitchCaseExpressions(nodeId, data.configuration?.switch_cases);
         }
         break;
+
+      case NodeType.DATA_TRANSFORM:
+        if (data.configuration?.transform_rules) {
+          const rules =
+            data.transformation_type == TransformationType.MAP && Array.isArray(data.configuration.transform_rules)
+              ? { map: data.configuration.transform_rules }
+              : data.configuration.transform_rules;
+          await updateDataTransformRules(nodeId, rules);
+        }
 
       default:
         break;
@@ -304,7 +322,11 @@ async function getNextNodeEdge(
 
     if (isNormalGroup || isParentGroup) {
       if (currentNode.type === NodeType.CONDITIONAL && edge.condition === NodeEdgesCondition.ON_TRUE) return true;
-      if (currentNode.type === NodeType.LOOP && edge.condition === NodeEdgesCondition.NONE) return true;
+      if (
+        [NodeType.LOOP, NodeType.DATA_TRANSFORM].includes(currentNode.type as NodeType) &&
+        edge.condition === NodeEdgesCondition.NONE
+      )
+        return true;
       if (currentNode.type === NodeType.SWITCH && edge.condition === "case_1") return true;
     }
 

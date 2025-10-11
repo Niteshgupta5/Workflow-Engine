@@ -1,7 +1,7 @@
 import type { Node } from "@prisma/client";
 import { getNodeById, logNodeExecution, updateNodeExecutionLog } from "../services";
 import { ExecutionLogEventType, ExecutionStatus, NodeType } from "../types";
-import { handleActionNode, handleConditionalNode, handleSwitchNode } from "./node-task";
+import { handleActionNode, handleConditionalNode, handleDataTransformNode, handleSwitchNode } from "./node-task";
 import { handleLoopNode } from "./node-task";
 
 /**
@@ -56,6 +56,13 @@ export const runNode = async (
 
       case NodeType.SWITCH: {
         const result = await handleSwitchNode(node, executionId, context, prevNodeId);
+        nodeStatus = result.status;
+        nextNodeId = result.nextNodeId;
+        break;
+      }
+
+      case NodeType.DATA_TRANSFORM: {
+        const result = await handleDataTransformNode(node, nodeLog.id, context, prevNodeId, groupId);
         nodeStatus = result.status;
         nextNodeId = result.nextNodeId;
         break;

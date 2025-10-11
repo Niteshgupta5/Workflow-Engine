@@ -20,6 +20,7 @@ export interface CreateNodeRecord {
 export interface UpdateNodeRecord {
   type: NodeType;
   name: string;
+  transformation_type?: TransformationType;
   actions?: UpdateActionNodeRecord[];
   conditions?: UpdateConditionalNodeRecord[];
   configuration?: NodeConfiguration;
