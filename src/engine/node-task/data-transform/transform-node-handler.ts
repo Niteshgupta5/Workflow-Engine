@@ -32,7 +32,7 @@ export const handleDataTransformNode = async (
       throw new Error("Transform rules do not exist");
     }
 
-    const inputData = prevNodeId ? context?.output?.[prevNodeId]?.result : context.input || context.data || {};
+    const inputData = prevNodeId ? context.output?.[prevNodeId]?.result : context.input || context.data || {};
 
     const transformRules = resolveTemplate(dataTransformNode.transform_rules, context);
     const typeKey = dataTransformNode.transformation_type as keyof TransformationRuleMap;
@@ -43,8 +43,6 @@ export const handleDataTransformNode = async (
     }
 
     result = await handler(inputData, transformRules, context);
-
-    context.output ??= {};
     context.output[node.id] = {
       result,
       timestamp: new Date().toISOString(),

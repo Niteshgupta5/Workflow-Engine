@@ -35,7 +35,12 @@ export async function handleActionNode(
 
     while (attempts <= maxAttempts) {
       try {
-        const result = await actionHandlers[action.action_name](action, context);
+        const handler = actionHandlers[action.action_name];
+        if (!handler) {
+          throw new Error(`Unsupported action name: ${action.action_name}`);
+        }
+
+        const result = await handler(action, context);
         context.output[action.id] = {
           action_name: action.action_name,
           result,
@@ -62,9 +67,7 @@ export async function handleActionNode(
         };
 
         if (attempts < maxAttempts) {
-          console.warn(
-            `Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`
-          );
+          console.warn(`Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`);
           attempts++;
           await sleep(delayMs);
         } else {

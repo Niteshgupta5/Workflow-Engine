@@ -40,12 +40,12 @@ export type TransformationHandler<T extends keyof TransformationRuleMap> = (
   data: any,
   rules: TransformationRuleMap[T],
   context: Record<string, any>
-) => string | number | DataObject;
+) => Promise<string | number | DataObject>;
 
 export const transformationHandlers: {
   [K in keyof TransformationRuleMap]: TransformationHandler<K>;
 } = {
-  [TransformationType.MAP]: (data, rules: { map: MapRule[] }, context) => {
+  [TransformationType.MAP]: async (data, rules: { map: MapRule[] }, context) => {
     const { map } = rules;
 
     if (Array.isArray(data)) {
@@ -55,7 +55,7 @@ export const transformationHandlers: {
     return mapObject(data, map);
   },
 
-  [TransformationType.RENAME]: (data, rules: RenameRule, context) => {
+  [TransformationType.RENAME]: async (data, rules: RenameRule, context) => {
     const { from, to } = rules;
 
     const mapping = from && to ? { [from]: to } : {};
@@ -67,7 +67,7 @@ export const transformationHandlers: {
     return renameKeys(data, mapping);
   },
 
-  [TransformationType.REMOVE]: (data, rules: RemoveRule, context) => {
+  [TransformationType.REMOVE]: async (data, rules: RemoveRule, context) => {
     const { fields = [] } = rules;
 
     if (Array.isArray(data)) {
@@ -77,7 +77,7 @@ export const transformationHandlers: {
     return removeKeys(data, fields);
   },
 
-  [TransformationType.FILTER]: (data, rules: FilterRule, context) => {
+  [TransformationType.FILTER]: async (data, rules: FilterRule, context) => {
     const { condition } = rules;
 
     // Support both conditions array and single condition string
@@ -108,7 +108,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.CONVERT_TYPE]: (data, rules: ConvertTypeRule, context) => {
+  [TransformationType.CONVERT_TYPE]: async (data, rules: ConvertTypeRule, context) => {
     const { field, toType } = rules;
 
     const conversionMap = { [field]: toType };
@@ -120,7 +120,7 @@ export const transformationHandlers: {
     return convertTypes(data, conversionMap);
   },
 
-  [TransformationType.MERGE]: (data, rules: MergeRule, context) => {
+  [TransformationType.MERGE]: async (data, rules: MergeRule, context) => {
     let result = Array.isArray(data) ? [...data] : { ...data };
 
     const { source, target, strategy = MergeStrategy.SHALLOW } = rules;
@@ -147,7 +147,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.SPLIT]: (data, rules: SplitRule, context) => {
+  [TransformationType.SPLIT]: async (data, rules: SplitRule, context) => {
     const { field, separator = ",", target, limit, trim = true } = rules;
     const sep = separator;
 
@@ -173,7 +173,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.DATE_FORMAT]: (data, rules: DateFormatRule, context) => {
+  [TransformationType.DATE_FORMAT]: async (data, rules: DateFormatRule, context) => {
     const { field, format: formatStr = "ISO", target, timezone } = rules;
 
     if (Array.isArray(data)) {
@@ -183,7 +183,7 @@ export const transformationHandlers: {
     return formatDateField(data, field, formatStr, target, timezone);
   },
 
-  [TransformationType.DATE_OPERATION]: (data, rules: DateOperationRule, context) => {
+  [TransformationType.DATE_OPERATION]: async (data, rules: DateOperationRule, context) => {
     const { field, operation, value, unit = TimeUnit.DAYS, target } = rules;
 
     if (Array.isArray(data)) {
@@ -193,7 +193,7 @@ export const transformationHandlers: {
     return performDateOperation(data, field, operation, value, unit, target);
   },
 
-  [TransformationType.TIMESTAMP]: (data, rules: TimestampRule, context) => {
+  [TransformationType.TIMESTAMP]: async (data, rules: TimestampRule, context) => {
     const { field, target, operation = TimestampOperation.TO_TIMESTAMP, unit = TimeUnit.MILLISECONDS } = rules;
 
     if (Array.isArray(data)) {
@@ -203,7 +203,7 @@ export const transformationHandlers: {
     return handleTimestamp(data, field, operation, unit, target);
   },
 
-  [TransformationType.COPY]: (data, rules: CopyRule, context) => {
+  [TransformationType.COPY]: async (data, rules: CopyRule, context) => {
     const { from, to } = rules;
     const sourceField = from;
     const targetField = to;
@@ -227,7 +227,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.AGGREGATE]: (data, rules: AggregateRule, context) => {
+  [TransformationType.AGGREGATE]: async (data, rules: AggregateRule, context) => {
     const { groupBy = [], operations = [] } = rules;
 
     if (!Array.isArray(data)) {
@@ -265,7 +265,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.GROUP]: (data, rules: GroupRule, context) => {
+  [TransformationType.GROUP]: async (data, rules: GroupRule, context) => {
     const { groupBy = [] } = rules;
 
     if (!Array.isArray(data)) {
@@ -283,7 +283,7 @@ export const transformationHandlers: {
     return _.groupBy(data, (item) => groupBy.map((key: string) => getNestedValue(item, key)).join("|"));
   },
 
-  [TransformationType.CONCAT]: (data, rules: ConcatRule, context) => {
+  [TransformationType.CONCAT]: async (data, rules: ConcatRule, context) => {
     const { sources = [], target, separator = "" } = rules;
 
     if (!target) {
