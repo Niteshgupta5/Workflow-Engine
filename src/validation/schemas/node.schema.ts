@@ -57,13 +57,7 @@ export const actionSchema = {
       .valid(...Object.values(ActionName))
       .required(),
 
-    params: Joi.alternatives()
-      .conditional("action_name", {
-        is: ActionName.CODE_BLOCK,
-        then: codeBlockParamsSchema,
-        otherwise: baseParamsSchema,
-      })
-      .required(),
+    params: baseParamsSchema.required(),
 
     retry_attempts: Joi.number().integer().min(0).max(3).optional(),
     retry_delay_ms: Joi.number().integer().min(0).optional(),

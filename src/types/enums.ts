@@ -39,7 +39,6 @@ export enum ActionName {
   SEND_EMAIL = "send_email",
   SEND_HTTP_REQUEST = "send_http_request",
   UPDATE_DATABASE = "update_database",
-  CODE_BLOCK = "code_block",
 }
 
 export enum ExecutionStatus {
@@ -97,11 +96,80 @@ export enum TransformationType {
   CONVERT_TYPE = "convert_type",
   MERGE = "merge",
   SPLIT = "split",
-  // UPPERCASE = "uppercase",
-  // LOWERCASE = "lowercase",
-  // SUBSTRING = "substring",
-  // REPLACE = "replace",
   DATE_FORMAT = "date_format",
   DATE_OPERATION = "date_operation",
   TIMESTAMP = "timestamp",
+}
+
+export enum ComparisonOperator {
+  EQUALS = "==",
+  STRICT_EQUALS = "===",
+  NOT_EQUALS = "!=",
+  GREATER_THAN = ">",
+  LESS_THAN = "<",
+  GREATER_THAN_OR_EQUAL = ">=",
+  LESS_THAN_OR_EQUAL = "<=",
+  CONTAINS = "contains",
+  STARTS_WITH = "startsWith",
+  ENDS_WITH = "endsWith",
+  IN = "in",
+  NOT_IN = "notIn",
+  EXISTS = "exists",
+  NOT_EXISTS = "notExists",
+}
+
+export enum AggregationOperation {
+  SUM = "sum",
+  AVG = "avg",
+  AVERAGE = "average",
+  COUNT = "count",
+  MIN = "min",
+  MAX = "max",
+  FIRST = "first",
+  LAST = "last",
+  UNIQUE = "unique",
+  JOIN = "join",
+}
+
+export enum DateOperation {
+  ADD = "add",
+  SUBTRACT = "subtract",
+}
+
+export enum TimeUnit {
+  MILLISECONDS = "milliseconds",
+  SECONDS = "seconds",
+  MINUTES = "minutes",
+  HOURS = "hours",
+  DAYS = "days",
+  WEEKS = "weeks",
+  YEARS = "years",
+}
+
+export enum FormatType {
+  ISO = "ISO",
+  DATE = "DATE",
+  TIME = "TIME",
+  DATETIME = "DATETIME",
+  TIMESTAMP = "TIMESTAMP",
+}
+
+export enum ConversionType {
+  STRING = "string",
+  NUMBER = "number",
+  INTEGER = "integer",
+  BOOLEAN = "boolean",
+  DATE = "date",
+  ARRAY = "array",
+  OBJECT = "object",
+}
+
+export enum MergeStrategy {
+  SHALLOW = "shallow",
+  DEEP = "deep",
+}
+
+export enum TimestampOperation {
+  TO_TIMESTAMP = "toTimestamp",
+  FROM_TIMESTAMP = "fromTimestamp",
 }
