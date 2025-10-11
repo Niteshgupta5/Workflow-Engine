@@ -10,9 +10,11 @@ import {
   NodeType,
   CodeBlockLanguage,
   SwitchCaseConfiguration,
+  TransformationType,
   UpdateNodeRecord,
 } from "../../types";
 import { patterns, START_NODE_ID } from "../../constants";
+import { dataTransformRuleSchema } from "./data-transform.schema";
 
 const baseParamsSchema = Joi.object({
   table: Joi.string().when(Joi.ref("...action_name"), {
@@ -126,6 +128,12 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> =
         switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
       }),
     },
+    {
+      is: NodeType.DATA_TRANSFORM,
+      then: Joi.object({
+        transform_rules: dataTransformRuleSchema.required(),
+      }),
+    },
   ]);
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
@@ -135,6 +143,13 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
       .valid(...Object.values(NodeType))
       .required(),
     name: Joi.string().min(3).max(255).required(),
+    transformation_type: Joi.when("type", {
+      is: NodeType.DATA_TRANSFORM,
+      then: Joi.string()
+        .valid(...Object.values(TransformationType))
+        .required(),
+      otherwise: Joi.forbidden(),
+    }),
 
     actions: Joi.array().items(actionSchema.body).when("type", {
       is: NodeType.ACTION,
@@ -149,7 +164,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
     }),
 
     configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH),
+      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH, NodeType.DATA_TRANSFORM),
       then: nodeConfigurationSchema.required(),
       otherwise: Joi.forbidden(),
     }),
@@ -228,6 +243,14 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .required(),
     name: Joi.string().min(3).max(255).required(),
 
+    transformation_type: Joi.when("type", {
+      is: NodeType.DATA_TRANSFORM,
+      then: Joi.string()
+        .valid(...Object.values(TransformationType))
+        .required(),
+      otherwise: Joi.forbidden(),
+    }),
+
     actions: Joi.array()
       .items(updateActionSchema.body)
       .when("type", {
@@ -247,7 +270,7 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .optional(),
 
     configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH),
+      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH, NodeType.DATA_TRANSFORM),
       then: nodeConfigurationSchema.required(),
       otherwise: Joi.forbidden(),
     }).optional(),

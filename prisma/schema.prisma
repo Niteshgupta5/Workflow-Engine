@@ -45,19 +45,34 @@ model Node {
     type        String
     name        String
     parent_id   String?
+    category_id String?
     created_at  DateTime @default(now())
     config      Json?
 
-    workflow      Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-    outgoing      NodeEdge[]         @relation("SourceNode")
-    incoming      NodeEdge[]         @relation("TargetNode")
-    group         NodeEdge[]         @relation("GroupNode")
-    actionNode    ActionNode[]
-    condition     ConditionalNode[]
-    logs          NodeExecutionLog[]
-    Configuration Configuration[]
+    workflow               Workflow                @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    outgoing               NodeEdge[]              @relation("SourceNode")
+    incoming               NodeEdge[]              @relation("TargetNode")
+    group                  NodeEdge[]              @relation("GroupNode")
+    actionNode             ActionNode[]
+    condition              ConditionalNode[]
+    logs                   NodeExecutionLog[]
+    Configuration          Configuration[]
+    DataTransformationNode DataTransformationNode?
+    Category               NodeCategory?           @relation(fields: [category_id], references: [id])
 
     @@map("nodes")
+}
+
+model NodeCategory {
+    id          String   @id @default(uuid())
+    name        String   @unique
+    description String?
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+
+    Node Node[]
+
+    @@map("node_category")
 }
 
 model NodeEdge {
@@ -100,6 +115,17 @@ model ConditionalNode {
     node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
 
     @@map("conditional_nodes")
+}
+
+model DataTransformationNode {
+    id                  String @id @default(uuid())
+    node_id             String @unique()
+    transformation_type String
+    transform_rules     Json?
+
+    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
+
+    @@map("data_transformation_nodes")
 }
 
 model Configuration {
@@ -160,4 +186,13 @@ model NodeTaskLog {
     nodeLog NodeExecutionLog @relation(fields: [node_log_id], references: [id], onDelete: Cascade)
 
     @@map("node_task_logs")
+}
+
+model Seed {
+    id        String   @id @default(uuid())
+    name      String   @unique
+    version   Int
+    appliedAt DateTime @default(now())
+
+    @@map("seeds")
 }
