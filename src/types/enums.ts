@@ -41,6 +41,12 @@ export enum ActionName {
   UPDATE_DATABASE = "update_database",
 }
 
+export enum FlowControlActionName {
+  CONDITIONAL = NodeType.CONDITIONAL,
+  LOOP = NodeType.LOOP,
+  SWITCH = NodeType.SWITCH,
+}
+
 export enum ExecutionStatus {
   RUNNING = "running",
   FAILED = "failed",

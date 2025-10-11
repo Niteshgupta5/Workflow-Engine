@@ -44,13 +44,6 @@ const baseParamsSchema = Joi.object({
   body: Joi.object().optional(),
 });
 
-const codeBlockParamsSchema = Joi.object({
-  code: Joi.string().required(),
-  language: Joi.string()
-    .valid(...Object.values(CodeBlockLanguage))
-    .required(),
-});
-
 export const actionSchema = {
   body: Joi.object({
     action_name: Joi.string()
