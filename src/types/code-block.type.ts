@@ -6,3 +6,8 @@ export interface CodeExecutionResult {
   error?: string;
   timedOut?: boolean;
 }
+export interface ExecutionLimits {
+  timeoutMs?: number;
+  memoryLimitKB?: number; // Memory limit in KB
+  cpuTimeMs?: number;
+}

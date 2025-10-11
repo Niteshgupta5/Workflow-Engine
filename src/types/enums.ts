@@ -75,17 +75,5 @@ export enum LoopType {
 
 export enum CodeBlockLanguage {
   JAVASCRIPT = "javascript",
-  TYPESCRIPT = "typescript",
   PYTHON = "python",
-  PHP = "php",
-  RUBY = "ruby",
-  GO = "go",
-  RUST = "rust",
-  JAVA = "java",
-  C = "c",
-  CPP = "cpp",
-  CSHARP = "csharp",
-  KOTLIN = "kotlin",
-  SHELL = "shell",
-  PERL = "perl",
 }

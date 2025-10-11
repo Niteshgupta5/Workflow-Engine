@@ -3,9 +3,17 @@ import { spawn } from "child_process";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import { LANGUAGE_CONFIGS } from "../constants";
-import { CodeBlockLanguage, CodeExecutionResult } from "../types";
-const { isEmpty, isNil, isObjectLike, isString } = pkg;
+import { Worker } from "worker_threads";
+
+import { CodeBlockLanguage, CodeExecutionResult, ExecutionLimits } from "../types";
+import { ExecutionMemoryError, ExecutionTimeoutError } from "../exceptions";
+import {
+  DEFAULT_CPU_TIME_MS,
+  DEFAULT_MEMORY_LIMIT_KB,
+  DEFAULT_TIMEOUT_MS,
+  LANGUAGE_CONFIGS,
+} from "../constants";
+const { isNil, isEmpty, isObjectLike, isString } = pkg;
 
 export function evaluateCondition(
   expression: string,
@@ -49,11 +57,20 @@ export function resolvePath(obj: any, path: string) {
     if (acc && typeof acc === "object" && part in acc) {
       return acc[part];
     }
+    // Auto-parse JSON strings
+    if (typeof acc === "string") {
+      try {
+        const parsed = JSON.parse(acc);
+        if (parsed && typeof parsed === "object" && part in parsed) {
+          return parsed[part];
+        }
+      } catch {}
+    }
     return undefined;
   }, obj);
 }
 
-export function resolveTemplate(value: any, context: any): any {
+export function resolveTemplate(value: any, context: any, strict: boolean = false): any {
   if (typeof value === "string") {
     const templateRegex = /\{\{(.*?)\}\}/g;
     let fullString = value.trim();
@@ -68,30 +85,42 @@ export function resolveTemplate(value: any, context: any): any {
         key.startsWith("$.") || key.startsWith("$")
           ? resolvePath(context, key.replace(/^\$\./, "").replace(/^\$/, ""))
           : context[key];
+
+      // In strict mode, only replace if value exists (not undefined)
+      if (strict && raw === undefined) {
+        return value; // Return original template string
+      }
+
       return raw;
     }
 
     // Otherwise, replace templates inside the string and serialize objects/arrays
-    return value.replace(templateRegex, (_, expr) => {
+    return value.replace(templateRegex, (match, expr) => {
       const key = expr.trim();
       const val =
         key.startsWith("$.") || key.startsWith("$")
           ? resolvePath(context, key.replace(/^\$\./, "").replace(/^\$/, ""))
           : context[key];
+
+      // In strict mode, only replace if value exists (not undefined)
+      if (strict && val === undefined) {
+        return match; // Return original {{ }} template
+      }
+
       if (typeof val === "object") return JSON.stringify(val);
       return val ?? "";
     });
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolveTemplate(item, context));
+    return value.map((item) => resolveTemplate(item, context, strict));
   }
 
   if (value && typeof value === "object") {
     const result: any = {};
     for (const k in value) {
       if (Object.prototype.hasOwnProperty.call(value, k)) {
-        result[k] = resolveTemplate(value[k], context);
+        result[k] = resolveTemplate(value[k], context, strict);
       }
     }
     return result;
@@ -101,45 +130,31 @@ export function resolveTemplate(value: any, context: any): any {
 }
 
 /**
- * Execute a block of code in any supported language.
+ * Execute a block of code in any supported language with resource limits.
  */
 export const executeCodeBlock = async (
   code: string,
-  context: Record<string, any>,
   language: CodeBlockLanguage,
-  timeoutMs = 5000,
+  limits: ExecutionLimits = {},
   input = ""
 ): Promise<CodeExecutionResult> => {
+  const timeoutMs = limits.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const memoryLimitKB = limits.memoryLimitKB ?? DEFAULT_MEMORY_LIMIT_KB;
+  const cpuTimeMs = limits.cpuTimeMs ?? DEFAULT_CPU_TIME_MS;
+
   const startTime = Date.now();
 
   try {
-    // Handle inline JS/TS execution with context
-    if (
-      ["javascript", "js", "typescript", "ts"].includes(language) &&
-      Object.keys(context).length > 0
-    ) {
-      const func = new Function("context", code);
-      const output = await Promise.race([
-        Promise.resolve(func(context)),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Execution timed out")), timeoutMs)
-        ),
-      ]);
-
-      return {
-        success: true,
-        output: JSON.stringify(output, null, 2),
-        exitCode: 0,
-        executionTime: Date.now() - startTime,
-      };
+    // JS code runs inside Worker for isolation
+    if (language.toLowerCase() === "javascript") {
+      return await runJsInWorker(code, timeoutMs, startTime);
     }
 
+    // Dynamic language execution via child process
     const config = LANGUAGE_CONFIGS[language];
-    if (!config) {
+    if (!config)
       return formatExecutionResult(false, `Unsupported language: ${language}`, startTime);
-    }
 
-    // Create a temporary folder and files
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "code-exec-"));
     const sourceFile = path.join(tempDir, `code${config.fileExtension}`);
     const compiledFile = path.join(tempDir, "output");
@@ -149,91 +164,162 @@ export const executeCodeBlock = async (
     let execCommand = config.command;
     let execArgs: string[] = [];
 
-    // Handle compilation (C, C++, Rust, Java, etc.)
     if (config.needsCompilation) {
-      const compileResult = await runCodeProcess(
+      const compileResult = await runProcess(
         config.compileCommand!,
         config.compileArgs!(sourceFile, compiledFile),
-        "",
-        timeoutMs
+        timeoutMs,
+        memoryLimitKB
       );
-
       if (!compileResult.success) {
+        await cleanup(tempDir);
         return formatExecutionResult(
           false,
           `Compilation failed:\n${compileResult.error}`,
           startTime
         );
       }
-
-      if (language === "java") {
-        const runArgs = config.runArgs!(sourceFile);
-        execCommand = runArgs[0];
-        execArgs = runArgs.slice(1);
-      } else {
-        execCommand = compiledFile;
-      }
+      execCommand = compiledFile;
+      execArgs = config.runArgs ? config.runArgs(sourceFile) : [];
     } else {
       execArgs = config.runArgs!(sourceFile);
     }
 
-    // Execute the program
-    const executionResult = await runCodeProcess(execCommand, execArgs, input, timeoutMs);
-
-    return formatExecutionResult(
-      executionResult.success,
-      executionResult.output || executionResult.error,
-      startTime,
-      executionResult
+    const result = await runProcess(
+      execCommand,
+      execArgs,
+      timeoutMs,
+      memoryLimitKB,
+      cpuTimeMs,
+      input
     );
+
+    await cleanup(tempDir);
+    return formatExecutionResult(result.success, result.output || result.error, startTime, result);
   } catch (error: any) {
     return formatExecutionResult(false, error.message, startTime);
   }
 };
 
+const runJsInWorker = (
+  code: string,
+  timeoutMs: number,
+  startTime?: number
+): Promise<CodeExecutionResult> => {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      `
+      const { parentPort } = require('worker_threads');
+      try {
+        const result = (async () => { ${code} })();
+        Promise.resolve(result).then(res => parentPort.postMessage({ success: true, result: res }))
+                                .catch(err => parentPort.postMessage({ success: false, error: err.message }));
+      } catch (err) {
+        parentPort.postMessage({ success: false, error: err.message });
+      }
+    `,
+      { eval: true }
+    );
+
+    const timeout = setTimeout(() => {
+      worker.terminate();
+      reject(new ExecutionTimeoutError());
+    }, timeoutMs);
+
+    worker.on("message", (msg: any) => {
+      clearTimeout(timeout);
+      if (msg.success)
+        resolve(formatExecutionResult(true, JSON.stringify(msg.result, null, 2), startTime));
+      else reject(new Error(msg.error));
+    });
+
+    worker.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+};
 /**
- * Run a language command or compiled binary.
+ * Run a language command or compiled binary with resource limits.
  */
-const runCodeProcess = (
+const runProcess = (
   command: string,
   args: string[],
-  input: string,
-  timeoutMs: number
+  timeoutMs: number,
+  memoryLimitKB: number,
+  cpuTimeMs?: number,
+  input = ""
 ): Promise<CodeExecutionResult> => {
-  return new Promise((resolve) => {
-    const processRef = spawn(command, args, { stdio: "pipe" });
-    let stdout = "";
-    let stderr = "";
+  return new Promise((resolve, reject) => {
+    const platform = os.platform();
+    let finalCommand = command;
+    let finalArgs = args;
+
+    if (platform === "linux" || platform === "darwin") {
+      const cpuSec = Math.ceil((cpuTimeMs ?? timeoutMs) / 1000);
+      const ulimitCmd =
+        platform === "linux"
+          ? `ulimit -v ${memoryLimitKB} && ulimit -t ${cpuSec}`
+          : `ulimit -t ${cpuSec}`;
+      finalCommand = "sh";
+      finalArgs = ["-c", `${ulimitCmd} && ${command} ${args.join(" ")}`];
+    }
+
+    const proc = spawn(finalCommand, finalArgs, { stdio: "pipe" });
+    let stdout = "",
+      stderr = "";
     let timedOut = false;
+    let memoryExceeded = false;
 
     const timeout = setTimeout(() => {
       timedOut = true;
-      processRef.kill("SIGKILL");
+      proc.kill("SIGKILL");
     }, timeoutMs);
 
-    if (input && processRef.stdin) {
-      processRef.stdin.write(input);
-      processRef.stdin.end();
+    if (input && proc.stdin) {
+      proc.stdin.write(input);
+      proc.stdin.end();
     }
 
-    processRef.stdout?.on("data", (data) => (stdout += data.toString()));
-    processRef.stderr?.on("data", (data) => (stderr += data.toString()));
-
-    processRef.on("error", (err) => {
-      clearTimeout(timeout);
-      resolve(formatExecutionResult(false, `Execution failed: ${err.message}`));
+    proc.stdout?.on("data", (d) => {
+      stdout += d.toString();
+      if (stdout.length > memoryLimitKB * 1024) {
+        // Simple memory limit check
+        memoryExceeded = true;
+        proc.kill("SIGKILL");
+      }
     });
 
-    processRef.on("close", (exitCode) => {
+    proc.stderr?.on("data", (d) => {
+      stderr += d.toString();
+      if (/MemoryError|Out of memory|Cannot allocate memory/i.test(stderr)) {
+        memoryExceeded = true;
+        proc.kill("SIGKILL");
+      }
+    });
+
+    proc.on("close", (exitCode, signal) => {
       clearTimeout(timeout);
 
-      if (timedOut) {
-        resolve(formatExecutionResult(false, "Execution timed out", undefined, { timedOut: true }));
-      } else {
-        const success = exitCode === 0;
-        const output = success ? stdout.trim() : stderr.trim() || "Unknown error";
-        resolve(formatExecutionResult(success, output, undefined, { exitCode }));
+      if (timedOut) return reject(new ExecutionTimeoutError());
+      if (memoryExceeded) return reject(new ExecutionMemoryError());
+
+      // Map OS signals to exceptions
+      if (exitCode === 137 || signal === "SIGKILL") {
+        return reject(new ExecutionMemoryError("Process killed - likely exceeded memory limit"));
       }
+      if (exitCode === 143 || signal === "SIGTERM") {
+        return reject(new ExecutionTimeoutError("Process killed - likely exceeded CPU/time limit"));
+      }
+
+      const success = exitCode === 0;
+      if (!success) return reject(new Error(stderr.trim() || "Unknown execution error"));
+      resolve(formatExecutionResult(true, stdout.trim()));
+    });
+
+    proc.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
     });
   });
 };
@@ -246,11 +332,44 @@ const formatExecutionResult = (
   output = "",
   startTime?: number,
   extra: Partial<CodeExecutionResult> = {}
-): CodeExecutionResult => ({
-  success,
-  output: output.trim(),
-  error: success ? undefined : output.trim(),
-  exitCode: extra.exitCode ?? (success ? 0 : 1),
-  timedOut: extra.timedOut ?? false,
-  executionTime: startTime ? Date.now() - startTime : extra.executionTime ?? 0,
-});
+): CodeExecutionResult => {
+  let parsedOutput = output.trim();
+
+  // Try to parse JSON from the last line of output
+  if (success && parsedOutput) {
+    const lines = parsedOutput.split("\n");
+    const lastLine = lines[lines.length - 1].trim();
+
+    try {
+      // Check if last line is valid JSON
+      if (
+        (lastLine.startsWith("{") && lastLine.endsWith("}")) ||
+        (lastLine.startsWith("[") && lastLine.endsWith("]"))
+      ) {
+        parsedOutput = JSON.parse(lastLine);
+      }
+    } catch {
+      // Not JSON, keep as string
+    }
+  }
+
+  return {
+    ...extra,
+    success,
+    output: parsedOutput,
+    error: success ? undefined : output.trim(),
+    exitCode: extra.exitCode ?? (success ? 0 : 1),
+    executionTime: startTime ? Date.now() - startTime : extra.executionTime ?? 0,
+  };
+};
+
+/**
+ * Cleanup temporary directory
+ */
+const cleanup = async (tempDir: string) => {
+  try {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  } catch (error) {
+    console.error("Failed to cleanup temp directory:", error);
+  }
+};
