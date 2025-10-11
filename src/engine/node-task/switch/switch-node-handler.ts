@@ -17,6 +17,7 @@ export async function handleSwitchNode(
 
   const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(node.id);
   if (!outgoingEdges.length) {
+    nodeStatus = ExecutionStatus.FAILED;
     throw new Error(`Switch node ${node.id} has no cases`);
   }
 

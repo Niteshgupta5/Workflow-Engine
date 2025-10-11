@@ -44,6 +44,7 @@ const concatRule = Joi.object({
 
 const codeBlockRule = Joi.object({
   expression: Joi.string().required(),
+  language: Joi.string().valid("js", "py").required(),
 });
 
 const convertTypeRule = Joi.object({

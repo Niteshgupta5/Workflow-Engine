@@ -83,7 +83,7 @@ export interface TimestampRule {
 }
 
 export type DataTransformationRuleConfig =
-  | MapRule[]
+  | { map: MapRule[] }
   | RenameRule
   | RemoveRule
   | CopyRule
