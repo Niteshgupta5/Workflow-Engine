@@ -33,7 +33,6 @@ export const runNode = async (
       node_id: node.id,
       status: ExecutionLogEventType.START,
       started_at: new Date(),
-      data: context,
     });
 
     const category = NODE_CATEGORY_MAPPER[node.type as NodeType];
@@ -79,7 +78,7 @@ export const runNode = async (
     await updateNodeExecutionLog(nodeLog.id, {
       status: nodeStatus,
       completed_at: new Date(),
-      data: context,
+      data: context.output[node.id],
     });
 
     return {

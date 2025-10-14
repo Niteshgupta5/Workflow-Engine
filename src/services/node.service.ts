@@ -340,6 +340,8 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
       throw new Error(`Condition must be a valid switch case (e.g., 'case_1', 'case_2', ...) for Switch parent node`);
     }
     await validateSwitchCaseEdgeDuplication(prevNode, data.condition);
+    const expression = await getSwitchCaseEdgeExpression(prevNode, data.condition);
+    if (!expression) throw new Error(`Expression not found for the case ${data.condition}`);
   }
 
   if (
