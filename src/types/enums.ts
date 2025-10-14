@@ -149,6 +149,7 @@ export enum TimeUnit {
   HOURS = "hours",
   DAYS = "days",
   WEEKS = "weeks",
+  MONTHS = "months",
   YEARS = "years",
 }
 
@@ -178,4 +179,61 @@ export enum MergeStrategy {
 export enum TimestampOperation {
   TO_TIMESTAMP = "toTimestamp",
   FROM_TIMESTAMP = "fromTimestamp",
+}
+
+export enum DateFormat {
+  // -----------------------------
+  // Full Dates
+  // -----------------------------
+  YYYY_MM_DD = "yyyy-MM-dd",
+  DD_MM_YYYY = "dd/MM/yyyy",
+  MM_DD_YYYY = "MM/dd/yyyy",
+  DD_MMM_YYYY = "dd/MMM/yyyy",
+  MMM_DD_YYYY = "MMM/dd/yyyy",
+  YYYYMMDD = "yyyyMMdd",
+  MMDDYYYY = "MMddyyyy",
+
+  // -----------------------------
+  // Date & Time
+  // -----------------------------
+  YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss",
+  DD_MM_YYYY_HH_MM_SS = "dd/MM/yyyy HH:mm:ss",
+  MM_DD_YYYY_HH_MM_SS = "MM/dd/yyyy HH:mm:ss",
+  YYYY_MM_DD_hh_mm_ss_a = "yyyy-MM-dd hh:mm:ss a",
+  DD_MM_YYYY_hh_mm_ss_a = "dd/MM/yyyy hh:mm:ss a",
+  MM_DD_YYYY_hh_mm_ss_a = "MM/dd/yyyy hh:mm:ss a",
+
+  // -----------------------------
+  // Time Only
+  // -----------------------------
+  HH_MM = "HH:mm",
+  HH_MM_SS = "HH:mm:ss",
+  hh_mm_a = "hh:mm a",
+  hh_mm_ss_a = "hh:mm:ss a",
+
+  // -----------------------------
+  // Month & Year
+  // -----------------------------
+  MMMM_YYYY = "MMMM yyyy",
+  MMM_YYYY = "MMM yyyy",
+  MM_YYYY = "MM/yyyy",
+
+  // -----------------------------
+  // Day Names / Weekday
+  // -----------------------------
+  EEEE = "EEEE", // Full day name (Monday)
+  EEE = "EEE", // Short day name (Mon)
+  do = "do", // Day with ordinal (1st, 2nd, 3rd)
+
+  // -----------------------------
+  // ISO & Timestamps
+  // -----------------------------
+  ISO = "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", // ISO 8601
+  UNIX = "t", // Timestamp in seconds
+  UNIX_MS = "T", // Timestamp in milliseconds
+
+  // -----------------------------
+  // Week of Year
+  // -----------------------------
+  ww_yyyy = "ww-yyyy", // Week number and year
 }

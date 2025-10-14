@@ -2,9 +2,10 @@
 // DATE OPERATIONS (using date-fns)
 // ============================================================================
 
-import { add, format, isValid, parseISO, sub } from "date-fns";
-import { DataObject, DateOperation, FormatType, TimestampOperation, TimeUnit } from "../../../../types";
+import { add, Duration, format, sub } from "date-fns";
+import { DataObject, DateFormat, DateOperation, FormatType, TimestampOperation, TimeUnit } from "../../../../types";
 import { getNestedValue, setNestedValue } from "./nested-value.helper";
+import { parseDateValue } from "../../../../utils";
 
 export const performDateOperation = (
   obj: DataObject,
@@ -18,17 +19,21 @@ export const performDateOperation = (
   let date: Date;
 
   if (typeof dateValue === "string") {
-    date = parseISO(dateValue);
+    date = parseDateValue(dateValue);
   } else {
     date = new Date(dateValue as string | number | Date);
   }
 
-  if (!isValid(date)) {
-    return obj;
-  }
+  let newDate: Date;
 
-  const duration: any = { [unit]: value };
-  const newDate = operation === DateOperation.ADD || operation === "add" ? add(date, duration) : sub(date, duration);
+  // ✅ Handle milliseconds manually (since date-fns doesn't)
+  if (unit === TimeUnit.MILLISECONDS) {
+    const diff = operation === DateOperation.ADD ? value : -value;
+    newDate = new Date(date.getTime() + diff);
+  } else {
+    const duration: Duration = { [unit]: value };
+    newDate = operation === DateOperation.ADD ? add(date, duration) : sub(date, duration);
+  }
 
   const resultValue = newDate.toISOString();
 
@@ -61,15 +66,14 @@ export const formatDateField = (
   let date: Date;
 
   if (typeof value === "string") {
-    date = parseISO(value);
+    date = parseDateValue(value);
   } else {
     date = new Date(value as string | number | Date);
   }
-
-  if (!isValid(date)) {
-    return obj;
+  // Convert date to the specified timezone if provided
+  if (timezone) {
+    throw Error("Timezone not supported");
   }
-
   let formatted: string;
 
   switch (formatStr.toUpperCase()) {
@@ -78,15 +82,15 @@ export const formatDateField = (
       break;
 
     case FormatType.DATE:
-      formatted = format(date, "yyyy-MM-dd");
+      formatted = format(date, DateFormat.YYYY_MM_DD);
       break;
 
     case FormatType.TIME:
-      formatted = format(date, "HH:mm:ss");
+      formatted = format(date, DateFormat.HH_MM_SS);
       break;
 
     case FormatType.DATETIME:
-      formatted = format(date, "yyyy-MM-dd HH:mm:ss");
+      formatted = format(date, DateFormat.YYYY_MM_DD_HH_MM_SS);
       break;
 
     case FormatType.TIMESTAMP:

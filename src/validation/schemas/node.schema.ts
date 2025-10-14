@@ -8,12 +8,11 @@ import {
   NodeConfiguration,
   NodeEdgesCondition,
   NodeType,
-  CodeBlockLanguage,
   SwitchCaseConfiguration,
   TransformationType,
   UpdateNodeRecord,
 } from "../../types";
-import { patterns, START_NODE_ID } from "../../constants";
+import { PATTERNS, START_NODE_ID } from "../../constants";
 import { dataTransformRuleSchema } from "./data-transform.schema";
 
 const baseParamsSchema = Joi.object({
@@ -26,7 +25,7 @@ const baseParamsSchema = Joi.object({
   data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
 
   url: Joi.string()
-    .pattern(patterns.url)
+    .pattern(PATTERNS.url)
     .when(Joi.ref("...action_name"), {
       is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
       then: Joi.required(),
@@ -92,36 +91,34 @@ const switchConfigurationSchema: {
   body: ObjectSchema<SwitchCaseConfiguration>;
 } = {
   body: Joi.object().keys({
-    condition: Joi.string().pattern(patterns.switch_case).required().messages({
-      "string.pattern.base":
-        "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
+    condition: Joi.string().pattern(PATTERNS.switch_case).required().messages({
+      "string.pattern.base": "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
       "any.required": "Condition is required for switch case configuration.",
     }),
     expression: Joi.string().required(),
   }),
 };
 
-export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> =
-  Joi.alternatives().conditional("type", [
-    {
-      is: NodeType.LOOP,
-      then: Joi.object({
-        loop_configuration: loopConfigurationSchema.body.required(),
-      }),
-    },
-    {
-      is: NodeType.SWITCH,
-      then: Joi.object({
-        switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
-      }),
-    },
-    {
-      is: NodeType.DATA_TRANSFORM,
-      then: Joi.object({
-        transform_rules: dataTransformRuleSchema.required(),
-      }),
-    },
-  ]);
+export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Joi.alternatives().conditional("type", [
+  {
+    is: NodeType.LOOP,
+    then: Joi.object({
+      loop_configuration: loopConfigurationSchema.body.required(),
+    }),
+  },
+  {
+    is: NodeType.SWITCH,
+    then: Joi.object({
+      switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
+    }),
+  },
+  {
+    is: NodeType.DATA_TRANSFORM,
+    then: Joi.object({
+      transform_rules: dataTransformRuleSchema.required(),
+    }),
+  },
+]);
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
   body: Joi.object().keys({
@@ -160,7 +157,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
     condition: Joi.string()
       .custom((value, helpers) => {
         if (Object.values(NodeEdgesCondition).includes(value as NodeEdgesCondition)) return value;
-        if (patterns.switch_case.test(value)) return value;
+        if (PATTERNS.switch_case.test(value)) return value;
         return helpers.error("any.invalid");
       })
       .when("prev_node_id", {
@@ -193,7 +190,7 @@ const updateActionSchema = {
       data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
 
       url: Joi.string()
-        .pattern(patterns.url)
+        .pattern(PATTERNS.url)
         .when(Joi.ref("...action_name"), {
           is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
           then: Joi.required(),
