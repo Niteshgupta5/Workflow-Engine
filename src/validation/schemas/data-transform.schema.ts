@@ -103,7 +103,7 @@ const dateOperationRule = Joi.object({
 });
 
 const timestampRule = Joi.object({
-  field: Joi.string().optional(),
+  field: Joi.string().required(),
   target: Joi.string().required(),
   unit: Joi.string()
     .valid(...Object.values(TimeUnit))

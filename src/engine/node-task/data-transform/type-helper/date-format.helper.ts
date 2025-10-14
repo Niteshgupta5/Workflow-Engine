@@ -2,7 +2,7 @@
 // DATE OPERATIONS (using date-fns)
 // ============================================================================
 
-import { add, Duration, format, sub } from "date-fns";
+import { add, Duration, format, isDate, sub } from "date-fns";
 import { DataObject, DateFormat, DateOperation, FormatType, TimestampOperation, TimeUnit } from "../../../../types";
 import { getNestedValue, setNestedValue } from "./nested-value.helper";
 import { parseDateValue } from "../../../../utils";
@@ -135,7 +135,8 @@ export const handleTimestamp = (
     const date = new Date(value as string | number | Date);
     result = unit === TimeUnit.SECONDS ? Math.floor(date.getTime() / 1000) : date.getTime();
   } else {
-    const timestamp = Number(value);
+    const timestamp = isDate(value) ? value.getTime() : Number(value);
+
     const ms = unit === TimeUnit.SECONDS ? timestamp * 1000 : timestamp;
     result = new Date(ms).toISOString();
   }
