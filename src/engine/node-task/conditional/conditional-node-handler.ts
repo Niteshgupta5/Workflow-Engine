@@ -1,6 +1,6 @@
 import { Node } from "@prisma/client";
-import { getNextNodeId, getNodeConditions, logTaskExecution, updateTaskLog } from "../../../services";
-import { ExecutionStatus, NodeEdgesCondition, TaskStatus } from "../../../types";
+import { getNextNodeId } from "../../../services";
+import { ConditionalConfig, ExecutionResult, ExecutionStatus, NodeEdgesCondition } from "../../../types";
 import { evaluateCondition } from "../../../utils";
 
 /**
@@ -8,54 +8,41 @@ import { evaluateCondition } from "../../../utils";
  */
 export async function handleConditionalNode(
   node: Node,
-  nodeLogId: string,
   context: Record<string, any>,
   prevNodeId: string | null = null,
   groupId: string | null = null
-): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
+): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
+  let error: Error | undefined = undefined;
   let pass = true;
-  let prevConditionId = null; // To fetch results of previous condition if needed
 
-  const nodeConditions = await getNodeConditions(node.id);
+  const config = node.config;
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error(`Conditional node ${node.name} configuration not found`);
+  }
+  const conditions = (config["conditions"] as ConditionalConfig[] | undefined) ?? [];
 
-  for (const condition of nodeConditions) {
-    console.log(`🔍 Evaluating condition: ${condition.expression} for node: ${node.name}`);
-
-    const taskLog = await logTaskExecution({
-      node_log_id: nodeLogId,
-      task_id: condition.id,
-      task_type: node.type,
-      status: TaskStatus.RUNNING,
-    });
-
+  for (const condition of conditions) {
     try {
       const result = evaluateCondition(condition.expression, context);
-      context.output[condition.id] = {
+      context.output[node.id] = {
         expression: condition.expression,
         success: result.status,
         matchedValue: result.value,
       };
 
-      await updateTaskLog(taskLog.id, {
-        status: TaskStatus.COMPLETED,
-        data: { success: result.status, matchedValue: result.value },
-      });
       pass = result.status;
-    } catch (error) {
+    } catch (err) {
       pass = false;
       nodeStatus = ExecutionStatus.FAILED;
-      await updateTaskLog(taskLog.id, {
-        status: TaskStatus.FAILED,
-        data: { error: String(error) },
-      });
+      error = err as Error;
+      break;
     }
-    prevConditionId = condition.id;
   }
 
   const nextNodeId = pass
     ? await getNextNodeId(node.id, NodeEdgesCondition.ON_TRUE, groupId)
     : await getNextNodeId(node.id, NodeEdgesCondition.ON_FALSE, groupId);
 
-  return { status: nodeStatus, nextNodeId };
+  return { status: nodeStatus, nextNodeId, error };
 }

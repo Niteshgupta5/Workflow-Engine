@@ -19,7 +19,7 @@ model Workflow {
     triggers   Trigger[]
     nodes      Node[]
     executions Execution[]
-    node_edges NodeEdge[]
+    edges      Edge[]
 
     @@map("workflows")
 }
@@ -40,27 +40,38 @@ model Trigger {
 }
 
 model Node {
-    id          String   @id @default(uuid())
-    workflow_id String
-    type        String
-    name        String
-    parent_id   String?
-    category_id String?
-    created_at  DateTime @default(now())
-    config      Json?
+    id             String   @id @default(uuid())
+    workflow_id    String
+    type           String
+    name           String
+    parent_id      String?
+    created_at     DateTime @default(now())
+    config         Json
+    template_id    String
+    retry_attempts Int      @default(0)
+    retry_delay_ms Int      @default(0)
 
-    workflow               Workflow                @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-    outgoing               NodeEdge[]              @relation("SourceNode")
-    incoming               NodeEdge[]              @relation("TargetNode")
-    group                  NodeEdge[]              @relation("GroupNode")
-    actionNode             ActionNode[]
-    condition              ConditionalNode[]
-    logs                   NodeExecutionLog[]
-    Configuration          Configuration[]
-    DataTransformationNode DataTransformationNode?
-    Category               NodeCategory?           @relation(fields: [category_id], references: [id])
+    workflow Workflow           @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+    outgoing Edge[]             @relation("SourceNode")
+    incoming Edge[]             @relation("TargetNode")
+    group    Edge[]             @relation("GroupNode")
+    logs     NodeExecutionLog[]
+    template NodeTemplate       @relation(fields: [template_id], references: [id])
 
     @@map("nodes")
+}
+
+model NodeTemplate {
+    id          String  @id @default(uuid())
+    name        String  @unique
+    description String?
+    type        String
+    category_id String?
+
+    category NodeCategory? @relation(fields: [category_id], references: [id])
+    Node     Node[]
+
+    @@map("node_templates")
 }
 
 model NodeCategory {
@@ -70,76 +81,26 @@ model NodeCategory {
     created_at  DateTime @default(now())
     updated_at  DateTime @updatedAt
 
-    Node Node[]
+    NodeTemplate NodeTemplate[]
 
     @@map("node_category")
 }
 
-model NodeEdge {
-    id             String  @id @default(uuid())
-    workflow_id    String
-    source_node_id String
-    target_node_id String
-    group_id       String?
-    condition      String?
-    expression     String?
+model Edge {
+    id          String  @id @default(uuid())
+    workflow_id String
+    source      String
+    target      String
+    group_id    String?
+    condition   String?
+    expression  String?
 
     workflow   Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-    sourceNode Node     @relation("SourceNode", fields: [source_node_id], references: [id], onDelete: Cascade)
-    targetNode Node     @relation("TargetNode", fields: [target_node_id], references: [id], onDelete: Cascade)
+    sourceNode Node     @relation("SourceNode", fields: [source], references: [id], onDelete: Cascade)
+    targetNode Node     @relation("TargetNode", fields: [target], references: [id], onDelete: Cascade)
     groupNode  Node?    @relation("GroupNode", fields: [group_id], references: [id], onDelete: Cascade)
 
-    @@map("node_edges")
-}
-
-model ActionNode {
-    id             String @id @default(uuid())
-    node_id        String
-    action_name    String
-    order          Int
-    params         Json
-    retry_attempts Int?
-    retry_delay_ms Int?
-
-    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
-
-    @@map("action_nodes")
-}
-
-model ConditionalNode {
-    id         String @id @default(uuid())
-    node_id    String
-    order      Int
-    expression String
-
-    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
-
-    @@map("conditional_nodes")
-}
-
-model DataTransformationNode {
-    id                  String @id @default(uuid())
-    node_id             String @unique()
-    transformation_type String
-    transform_rules     Json?
-
-    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
-
-    @@map("data_transformation_nodes")
-}
-
-model Configuration {
-    id               String  @id @default(uuid())
-    node_id          String
-    loop_type        String?
-    max_iterations   Int?
-    exit_condition   String?
-    data_source_path String?
-    switch_cases     Json?
-
-    node Node @relation(fields: [node_id], references: [id], onDelete: Cascade)
-
-    @@map("configurations")
+    @@map("edges")
 }
 
 model Execution {
@@ -167,25 +128,10 @@ model NodeExecutionLog {
     completed_at DateTime?
     data         Json?
 
-    execution Execution     @relation(fields: [execution_id], references: [id], onDelete: Cascade)
-    node      Node          @relation(fields: [node_id], references: [id], onDelete: Cascade)
-    taskLogs  NodeTaskLog[]
+    execution Execution @relation(fields: [execution_id], references: [id], onDelete: Cascade)
+    node      Node      @relation(fields: [node_id], references: [id], onDelete: Cascade)
 
     @@map("node_execution_logs")
-}
-
-model NodeTaskLog {
-    id          String   @id @default(uuid())
-    node_log_id String
-    task_id     String
-    task_type   String
-    status      String
-    data        Json?
-    created_at  DateTime @default(now())
-
-    nodeLog NodeExecutionLog @relation(fields: [node_log_id], references: [id], onDelete: Cascade)
-
-    @@map("node_task_logs")
 }
 
 model Seed {

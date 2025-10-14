@@ -1,113 +1,68 @@
-import { Node, NodeEdge } from "@prisma/client";
-import { JsonConfig } from "./common.types";
-import {
-  ActionName,
-  LoopType,
-  NodeEdgesCondition,
-  NodeType,
-  SwitchCaseCondition,
-  TransformationType,
-} from "./enums";
-import { DataTransformationRuleConfig } from "./data-transform.types";
+import { Node, Edge } from "@prisma/client";
+import { NodeEdgesCondition, NodeType, SwitchCaseCondition } from "./enums";
+import { DataTransformationRuleConfig, TransformationRuleMap } from "./data-transform.types";
+import { SendHttpRequest, SendEmail, UpdateDatabase } from "./action.types";
+import { ConditionalConfig, LoopConfig, SwitchConfig } from "./flow-control.types";
 
 export interface CreateNodeRecord {
   workflow_id: string;
   type: NodeType;
   name: string;
-  transformation_type?: TransformationType;
   prev_node_id?: string;
   next_node_id?: string;
   group_id?: string;
-  condition?: NodeEdgesCondition | SwitchCaseCondition;
-  actions?: CreateActionNodeRecord[];
-  conditions?: CreateConditionalNodeRecord[];
-  configuration?: NodeConfiguration;
+  condition: NodeEdgesCondition | SwitchCaseCondition;
+  configuration: NodeConfiguration;
+  retry_attempts?: number;
+  retry_delay_ms?: number;
 }
 
 export interface UpdateNodeRecord {
   type: NodeType;
   name: string;
-  transformation_type?: TransformationType;
-  actions?: UpdateActionNodeRecord[];
-  conditions?: UpdateConditionalNodeRecord[];
   configuration?: NodeConfiguration;
+  retry_attempts?: number;
+  retry_delay_ms?: number;
 }
 
 export interface CreateNodeEdgeRecord {
   workflow_id: string;
-  source_node_id: string;
-  target_node_id: string;
+  source: string;
+  target: string;
   group_id?: string;
   condition: NodeEdgesCondition | SwitchCaseCondition;
   expression?: string;
 }
 
 export interface UpdateNodeEdgeRecord {
-  source_node_id?: string;
-  target_node_id?: string;
+  source?: string;
+  target?: string;
   group_id?: string;
   condition?: NodeEdgesCondition | SwitchCaseCondition;
   expression?: string;
 }
-export interface GetNodeEdgeWithRelation extends NodeEdge {
+
+export interface GetNodeEdgeWithRelation extends Edge {
   sourceNode?: Node;
   targetNode?: Node;
 }
 
-export interface CreateActionNodeRecord {
-  node_id: string;
-  action_name: ActionName;
-  order: number;
-  params?: JsonConfig;
-  retry_attempts?: number;
-  retry_delay_ms?: number;
+export interface NodeConfigurationMap extends Partial<TransformationRuleMap> {
+  [NodeType.SEND_EMAIL]?: SendEmail;
+  [NodeType.SEND_HTTP_REQUEST]?: SendHttpRequest;
+  [NodeType.UPDATE_DATABASE]?: UpdateDatabase;
+
+  // Flow Control
+  [NodeType.CONDITIONAL]?: { conditions: ConditionalConfig[] };
+  [NodeType.LOOP]?: LoopConfig;
+  [NodeType.SWITCH]?: { switch_cases: SwitchConfig[] };
 }
 
-export interface UpdateActionNodeRecord {
-  id: string;
-  action_name: ActionName;
-  params?: JsonConfig;
-  retry_attempts?: number;
-  retry_delay_ms?: number;
-}
-
-export interface CreateConditionalNodeRecord {
-  node_id: string;
-  order: number;
-  expression: string;
-}
-
-export interface UpdateConditionalNodeRecord {
-  id: string;
-  expression: string;
-}
-
-export interface ConfigurationRecord extends UpdateConfigurationRecord {
-  node_id: string;
-}
-
-export interface UpdateConfigurationRecord {
-  loop_type?: LoopType;
-  max_iterations?: number | null;
-  exit_condition?: string;
-  data_source_path?: string;
-  switch_cases?: JsonConfig;
-}
-
-export interface LoopConfiguration {
-  loop_type?: LoopType;
-  max_iterations?: number | null;
-  exit_condition?: string;
-  data_source_path?: string;
-}
-
-export interface SwitchCaseConfiguration {
-  condition: SwitchCaseCondition;
-  expression: string;
-}
-
-export interface NodeConfiguration {
-  loop_configuration: LoopConfiguration;
-  switch_cases: SwitchCaseConfiguration[];
-  transform_rules: DataTransformationRuleConfig;
-}
+export type NodeConfiguration =
+  | SendEmail
+  | SendHttpRequest
+  | UpdateDatabase
+  | { conditions: ConditionalConfig[] }
+  | { switch_cases: SwitchConfig[] }
+  | LoopConfig
+  | DataTransformationRuleConfig;

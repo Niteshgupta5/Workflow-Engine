@@ -35,7 +35,7 @@ export function evaluateCondition(expression: string, context: Record<string, an
     return { status: Boolean(fn()), value: variableValue };
   } catch (error) {
     console.error("Condition evaluation failed:", error);
-    return { status: false, value: variableValue };
+    throw error;
   }
 }
 
@@ -221,6 +221,7 @@ const runJsInWorker = (code: string, timeoutMs: number, startTime?: number): Pro
     });
   });
 };
+
 /**
  * Run a language command or compiled binary with resource limits.
  */

@@ -20,9 +20,9 @@ import {
   TimestampRule,
   TimeUnit,
   TransformationRuleMap,
-  TransformationType,
+  NodeType,
 } from "../../../types";
-import { executeCodeBlock, resolveTemplate } from "../../../utils";
+import { evaluateCondition, executeCodeBlock, resolveTemplate } from "../../../utils";
 import {
   aggregate,
   convertTypes,
@@ -45,7 +45,7 @@ export type TransformationHandler<T extends keyof TransformationRuleMap> = (
 export const transformationHandlers: {
   [K in keyof TransformationRuleMap]: TransformationHandler<K>;
 } = {
-  [TransformationType.MAP]: async (data, rules: { map: MapRule[] }, context) => {
+  [NodeType.MAP]: async (data, rules: { map: MapRule[] }, context) => {
     const { map } = rules;
 
     if (Array.isArray(data)) {
@@ -55,7 +55,7 @@ export const transformationHandlers: {
     return mapObject(data, map);
   },
 
-  [TransformationType.RENAME]: async (data, rules: RenameRule, context) => {
+  [NodeType.RENAME]: async (data, rules: RenameRule, context) => {
     const { from, to } = rules;
 
     const mapping = from && to ? { [from]: to } : {};
@@ -67,7 +67,7 @@ export const transformationHandlers: {
     return renameKeys(data, mapping);
   },
 
-  [TransformationType.REMOVE]: async (data, rules: RemoveRule, context) => {
+  [NodeType.REMOVE]: async (data, rules: RemoveRule, context) => {
     const { fields = [] } = rules;
 
     if (Array.isArray(data)) {
@@ -77,17 +77,18 @@ export const transformationHandlers: {
     return removeKeys(data, fields);
   },
 
-  [TransformationType.FILTER]: async (data, rules: FilterRule, context) => {
+  [NodeType.FILTER]: async (data, rules: FilterRule, context) => {
     const { condition } = rules;
 
     // Support both conditions array and single condition string
     if (condition && typeof condition === "string") {
-      const conditionResult = resolveTemplate(condition, { ...context, data });
-      return conditionResult ? data : null;
+      // const expression = resolveTemplate(condition, { ...context, data });
+      const result = evaluateCondition(condition, { ...context, data });
+      return result.status ? data : null;
     }
   },
 
-  [TransformationType.CODE_BLOCK]: async (data, rules: CodeBlockRule, context) => {
+  [NodeType.CODE_BLOCK]: async (data, rules: CodeBlockRule, context) => {
     const { expression, language } = rules;
     const codeToExecute = expression;
 
@@ -98,17 +99,16 @@ export const transformationHandlers: {
     const execContext = {
       ...context,
       data,
-      input: data,
+      // input: data, // Here data is prev output
       _,
     };
-
     const resolvedCode = resolveTemplate(codeToExecute, execContext, true);
     const result = await executeCodeBlock(resolvedCode, language);
 
     return result;
   },
 
-  [TransformationType.CONVERT_TYPE]: async (data, rules: ConvertTypeRule, context) => {
+  [NodeType.CONVERT_TYPE]: async (data, rules: ConvertTypeRule, context) => {
     const { field, toType } = rules;
 
     const conversionMap = { [field]: toType };
@@ -116,11 +116,10 @@ export const transformationHandlers: {
     if (Array.isArray(data)) {
       return data.map((item) => convertTypes(item, conversionMap));
     }
-
     return convertTypes(data, conversionMap);
   },
 
-  [TransformationType.MERGE]: async (data, rules: MergeRule, context) => {
+  [NodeType.MERGE]: async (data, rules: MergeRule, context) => {
     let result = Array.isArray(data) ? [...data] : { ...data };
 
     const { source, target, strategy = MergeStrategy.SHALLOW } = rules;
@@ -147,7 +146,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.SPLIT]: async (data, rules: SplitRule, context) => {
+  [NodeType.SPLIT]: async (data, rules: SplitRule, context) => {
     const { field, separator = ",", target, limit, trim = true } = rules;
     const sep = separator;
 
@@ -173,7 +172,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.DATE_FORMAT]: async (data, rules: DateFormatRule, context) => {
+  [NodeType.DATE_FORMAT]: async (data, rules: DateFormatRule, context) => {
     const { field, format: formatStr = "ISO", target, timezone } = rules;
 
     if (Array.isArray(data)) {
@@ -183,7 +182,7 @@ export const transformationHandlers: {
     return formatDateField(data, field, formatStr, target, timezone);
   },
 
-  [TransformationType.DATE_OPERATION]: async (data, rules: DateOperationRule, context) => {
+  [NodeType.DATE_OPERATION]: async (data, rules: DateOperationRule, context) => {
     const { field, operation, value, unit = TimeUnit.DAYS, target } = rules;
 
     if (Array.isArray(data)) {
@@ -195,7 +194,7 @@ export const transformationHandlers: {
     return performDateOperation(data, field, operation, value, unit, target);
   },
 
-  [TransformationType.TIMESTAMP]: async (data, rules: TimestampRule, context) => {
+  [NodeType.TIMESTAMP]: async (data, rules: TimestampRule, context) => {
     const { field, target, operation = TimestampOperation.TO_TIMESTAMP, unit = TimeUnit.MILLISECONDS } = rules;
 
     if (Array.isArray(data)) {
@@ -205,7 +204,7 @@ export const transformationHandlers: {
     return handleTimestamp(data, field, operation, unit, target);
   },
 
-  [TransformationType.COPY]: async (data, rules: CopyRule, context) => {
+  [NodeType.COPY]: async (data, rules: CopyRule, context) => {
     const { from, to } = rules;
     const sourceField = from;
     const targetField = to;
@@ -229,7 +228,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.AGGREGATE]: async (data, rules: AggregateRule, context) => {
+  [NodeType.AGGREGATE]: async (data, rules: AggregateRule, context) => {
     const { groupBy = [], operations = [] } = rules;
 
     if (!Array.isArray(data)) {
@@ -267,7 +266,7 @@ export const transformationHandlers: {
     return result;
   },
 
-  [TransformationType.GROUP]: async (data, rules: GroupRule, context) => {
+  [NodeType.GROUP]: async (data, rules: GroupRule, context) => {
     const { groupBy = [] } = rules;
 
     if (!Array.isArray(data)) {
@@ -285,7 +284,7 @@ export const transformationHandlers: {
     return _.groupBy(data, (item) => groupBy.map((key: string) => getNestedValue(item, key)).join("|"));
   },
 
-  [TransformationType.CONCAT]: async (data, rules: ConcatRule, context) => {
+  [NodeType.CONCAT]: async (data, rules: ConcatRule, context) => {
     const { sources = [], target, separator = "" } = rules;
 
     if (!target) {

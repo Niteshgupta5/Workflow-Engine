@@ -1,10 +1,4 @@
-import {
-  createExecution,
-  getEntryNode,
-  getTriggerById,
-  getWorkflowById,
-  updateExecution,
-} from "../services";
+import { createExecution, getEntryNode, getTriggerById, getWorkflowById, updateExecution } from "../services";
 import { ExecutionStatus, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
@@ -39,7 +33,9 @@ export async function runWorkflow(
         completed_at: new Date(),
         context,
       });
-      console.log(`✅ Execution ${executionId} completed`);
+      if (!currentNode) {
+        console.log(`✅ Execution ${executionId} completed`);
+      }
     } catch (error) {
       await updateExecution(executionId, {
         status: ExecutionStatus.FAILED,
@@ -102,17 +98,13 @@ export async function executeTrigger(
         const eventConfig = config[TriggerType.EVENT];
         if (!eventConfig) throw new Error("Invalid EVENT configuration");
 
-        await httpRequest(
-          eventConfig.method,
-          `${process.env.BASE_URL}/workflow/${trigger.workflow_id}/run`,
-          {
-            executionId: execution.id,
-            context: {
-              eventName: eventConfig.event_name,
-              input: inputContext,
-            },
-          }
-        );
+        await httpRequest(eventConfig.method, `${process.env.BASE_URL}/workflow/${trigger.workflow_id}/run`, {
+          executionId: execution.id,
+          context: {
+            eventName: eventConfig.event_name,
+            input: inputContext,
+          },
+        });
         break;
 
       case TriggerType.HTTP_REQUEST:
@@ -146,7 +138,7 @@ export async function executeTrigger(
       },
       completed_at: new Date(),
     });
-    console.error("Error: In Trigger Execution", error);
+    console.error("Error: In Trigger Execution");
     throw error;
   }
 }

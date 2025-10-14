@@ -6,8 +6,6 @@ import {
   updateSwitchCaseExpressions,
   validateSwitchCaseEdgeDuplication,
 } from "./node-edge.service";
-import { createActionNodes, upsertManyActionNodes } from "./action-node.service";
-import { createConditionalNodes, upsertManyConditionsNodes } from "./conditional-node.service";
 import {
   CreateNodeRecord,
   GetNodeEdgeWithRelation,
@@ -15,22 +13,17 @@ import {
   NodeEdgesCondition,
   NodeType,
   SwitchCaseCondition,
-  SwitchCaseConfiguration,
-  TransformationType,
+  SwitchConfig,
   UpdateNodeRecord,
 } from "../types";
-import { createNodeConfig, getNodeConfig, updateNodeConfig } from "./node-config.service";
 import { PATTERNS, START_NODE_ID } from "../constants";
-import { getCategoryIdByNodeType } from "./category.service";
-import {
-  createDataTransformNodes,
-  getDataTransformNodeById,
-  updateDataTransformRules,
-} from "./data-transformation-node.service";
+import { getTemplateIdByNodeType } from "./node-template.service";
+import { getWorkflowById } from "./workflow.service";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
-    const { workflow_id, type, name, ...rest } = data;
+    const { workflow_id, type, name, configuration, ...rest } = data;
+    await getWorkflowById(workflow_id);
 
     const prevNode =
       rest.prev_node_id && rest.prev_node_id !== START_NODE_ID
@@ -40,71 +33,32 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
     await checkNodeValidations(data, prevNode);
 
     // Create New Node
-    const categoryId = await getCategoryIdByNodeType(type);
+    const templateId = await getTemplateIdByNodeType(type);
     const newNode = await prisma.node.create({
       data: {
         workflow_id,
         type,
         name,
         parent_id: rest.group_id || undefined,
-        category_id: categoryId,
+        config: configuration as JsonConfig,
+        template_id: templateId,
+        retry_attempts: rest.retry_attempts ?? undefined,
+        retry_delay_ms: rest.retry_delay_ms ?? undefined,
       },
     });
 
-    // Handle child tables (actions, conditions, loop config)
-    if (newNode.type == NodeType.ACTION && rest.actions?.length) {
-      const updatedActions = rest.actions.map((item, i) => ({
-        ...item,
-        node_id: newNode.id,
-        order: i + 1,
-        params: item.params as any,
-      }));
-      await createActionNodes(updatedActions);
-    } else if (newNode.type == NodeType.CONDITIONAL && rest.conditions?.length) {
-      const updatedConditions = rest.conditions.map((item, i) => ({
-        ...item,
-        node_id: newNode.id,
-        order: i + 1,
-      }));
-      await createConditionalNodes(updatedConditions);
-    } else if (newNode.type == NodeType.LOOP && rest.configuration?.loop_configuration) {
-      const config = rest.configuration?.loop_configuration;
-      await createNodeConfig({
-        node_id: newNode.id,
-        loop_type: config.loop_type,
-        max_iterations: config.max_iterations ?? null,
-        exit_condition: config.exit_condition ?? undefined,
-        data_source_path: config.data_source_path ?? undefined,
-      });
-
+    // Create self-edge for loop nodes
+    if (newNode.type == NodeType.LOOP) {
       await createNodeEdge(
         {
           workflow_id,
-          source_node_id: newNode.id,
-          target_node_id: newNode.id,
+          source: newNode.id,
+          target: newNode.id,
           condition: NodeEdgesCondition.NONE,
           group_id: newNode.id,
         },
         false
       );
-    } else if (newNode.type == NodeType.SWITCH && rest.configuration?.switch_cases) {
-      await createNodeConfig({
-        node_id: newNode.id,
-        switch_cases: rest.configuration?.switch_cases,
-      });
-    } else if (
-      newNode.type == NodeType.DATA_TRANSFORM &&
-      rest.transformation_type &&
-      rest.configuration?.transform_rules
-    ) {
-      await createDataTransformNodes({
-        node_id: newNode.id,
-        transformation_type: rest.transformation_type,
-        transform_rules:
-          rest.transformation_type == TransformationType.MAP && Array.isArray(rest.configuration.transform_rules)
-            ? { map: rest.configuration.transform_rules }
-            : (rest.configuration.transform_rules as JsonConfig),
-      });
     }
 
     // Edge Handling
@@ -116,8 +70,8 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         await createNodeEdge(
           {
             workflow_id,
-            source_node_id: rest.prev_node_id,
-            target_node_id: newNode.id,
+            source: rest.prev_node_id,
+            target: newNode.id,
             condition: rest.condition ?? NodeEdgesCondition.NONE,
             group_id: rest.group_id || undefined,
             expression: deletedEdges[0].expression ?? undefined,
@@ -127,8 +81,8 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
 
         await createNodeEdge({
           workflow_id,
-          source_node_id: newNode.id,
-          target_node_id: rest.next_node_id,
+          source: newNode.id,
+          target: rest.next_node_id,
           condition:
             newNode.type === NodeType.CONDITIONAL
               ? NodeEdgesCondition.ON_TRUE
@@ -143,8 +97,8 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         await createNodeEdge(
           {
             workflow_id,
-            source_node_id: rest.prev_node_id,
-            target_node_id: newNode.id,
+            source: rest.prev_node_id,
+            target: newNode.id,
             condition: rest.condition ?? NodeEdgesCondition.NONE,
             group_id: rest.group_id || undefined,
             expression,
@@ -157,8 +111,8 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
       await createNodeEdge(
         {
           workflow_id,
-          source_node_id: newNode.id,
-          target_node_id: rest.next_node_id,
+          source: newNode.id,
+          target: rest.next_node_id,
           condition:
             newNode.type === NodeType.CONDITIONAL
               ? NodeEdgesCondition.ON_TRUE
@@ -198,8 +152,8 @@ export async function getEntryNode(workflowId: string): Promise<Node | null> {
         FROM "public".nodes
         WHERE workflow_id = ${workflowId}
         AND id NOT IN (
-            SELECT target_node_id
-            FROM "public".node_edges
+            SELECT target
+            FROM "public".edges
             WHERE workflow_id = ${workflowId}
         )
       `;
@@ -217,53 +171,22 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
     if (data.type && data.type !== existingNode.type) {
       throw new Error(`Node type cannot be updated. Please remove node ${nodeId} and create a new one.`);
     }
-    const dataTransformNode =
-      existingNode.type == NodeType.DATA_TRANSFORM ? await getDataTransformNodeById(existingNode.id) : undefined;
-    if (data.transformation_type && data.transformation_type !== dataTransformNode?.transformation_type) {
-      throw new Error(`"transformation_type" cannot be updated. Please remove node ${nodeId} and create a new one.`);
-    }
 
     const node = await prisma.node.update({
       where: { id: nodeId },
       data: {
         name: data.name ?? existingNode.name,
+        config: (data.configuration as JsonConfig) ?? existingNode.config,
+        retry_attempts: data.retry_attempts ?? undefined,
+        retry_delay_ms: data.retry_delay_ms ?? undefined,
       },
     });
 
-    switch (existingNode.type) {
-      case NodeType.ACTION:
-        await upsertManyActionNodes(nodeId, data.actions || []);
-        break;
-
-      case NodeType.CONDITIONAL:
-        await upsertManyConditionsNodes(nodeId, data.conditions || []);
-        break;
-
-      case NodeType.LOOP:
-        data.configuration?.loop_configuration &&
-          (await updateNodeConfig(nodeId, data.configuration?.loop_configuration));
-        break;
-
-      case NodeType.SWITCH:
-        if (data.configuration?.switch_cases) {
-          await updateNodeConfig(nodeId, {
-            switch_cases: data.configuration?.switch_cases,
-          });
-          await updateSwitchCaseExpressions(nodeId, data.configuration?.switch_cases);
-        }
-        break;
-
-      case NodeType.DATA_TRANSFORM:
-        if (data.configuration?.transform_rules) {
-          const rules =
-            data.transformation_type == TransformationType.MAP && Array.isArray(data.configuration.transform_rules)
-              ? { map: data.configuration.transform_rules }
-              : data.configuration.transform_rules;
-          await updateDataTransformRules(nodeId, rules);
-        }
-
-      default:
-        break;
+    if (existingNode.type == NodeType.SWITCH && data.configuration) {
+      if (data.configuration && "switch_cases" in data.configuration) {
+        const cases = (data.configuration as { switch_cases: SwitchConfig[] }).switch_cases;
+        if (cases) await updateSwitchCaseExpressions(nodeId, cases);
+      }
     }
     return node;
   } catch (error) {
@@ -290,13 +213,13 @@ export async function deleteNode(nodeId: string): Promise<Node> {
   try {
     const node = await getNodeById(nodeId);
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const incomingEdges = await tx.nodeEdge.findMany({
-        where: { workflow_id: node.workflow_id, target_node_id: nodeId },
+      const incomingEdges = await tx.edge.findMany({
+        where: { workflow_id: node.workflow_id, target: nodeId },
         include: { sourceNode: true },
       });
 
-      const outgoingEdges = await tx.nodeEdge.findMany({
-        where: { workflow_id: node.workflow_id, source_node_id: nodeId },
+      const outgoingEdges = await tx.edge.findMany({
+        where: { workflow_id: node.workflow_id, source: nodeId },
       });
 
       await reconnectNodeEdges(tx, node, incomingEdges, outgoingEdges);
@@ -336,7 +259,7 @@ async function getNextNodeEdge(
     if (isNormalGroup || isParentGroup) {
       if (currentNode.type === NodeType.CONDITIONAL && edge.condition === NodeEdgesCondition.ON_TRUE) return true;
       if (
-        [NodeType.LOOP, NodeType.DATA_TRANSFORM].includes(currentNode.type as NodeType) &&
+        ![NodeType.CONDITIONAL, NodeType.SWITCH].includes(currentNode.type as NodeType) &&
         edge.condition === NodeEdgesCondition.NONE
       )
         return true;
@@ -361,8 +284,8 @@ async function reconnectNodeEdges(
   if (prevNodeEdge && nextNodeEdge) {
     const data = {
       workflow_id: currentNode.workflow_id,
-      source_node_id: prevNodeEdge.source_node_id,
-      target_node_id: nextNodeEdge.target_node_id,
+      source: prevNodeEdge.source,
+      target: nextNodeEdge.target,
       condition:
         prevNodeEdge.sourceNode?.["type"] == NodeType.CONDITIONAL
           ? NodeEdgesCondition.ON_TRUE
@@ -372,14 +295,14 @@ async function reconnectNodeEdges(
       group_id: prevNodeEdge.group_id ?? null,
       expression: prevNodeEdge.expression ?? undefined,
     };
-    await tx.nodeEdge.create({ data });
+    await tx.edge.create({ data });
   }
   if (currentNode.type == NodeType.LOOP) {
     await tx.node.updateMany({
       where: { parent_id: currentNode.id },
       data: { parent_id: currentNode.parent_id ?? null },
     });
-    await tx.nodeEdge.updateMany({
+    await tx.edge.updateMany({
       where: { group_id: currentNode.id },
       data: { group_id: currentNode.parent_id ?? null },
     });
@@ -390,16 +313,20 @@ async function getSwitchCaseEdgeExpression(
   prevNode: Node,
   condition: NodeEdgesCondition | SwitchCaseCondition
 ): Promise<string | undefined> {
-  if (prevNode.type != NodeType.SWITCH || !PATTERNS.switch_case.test(condition)) return undefined;
-  const config = await getNodeConfig(prevNode.id);
-  const switchCases = config?.switch_cases as SwitchCaseConfiguration[] | undefined;
+  if (prevNode.type != NodeType.SWITCH || !patterns.switch_case.test(condition)) return undefined;
+  const config = prevNode.config;
+  if (!config || typeof config !== "object" || Array.isArray(config)) return undefined;
+
+  const switchCases = config["switch_cases"] as SwitchConfig[] | undefined;
   const expression = switchCases?.find((e) => e.condition === condition)?.expression ?? undefined;
   return expression;
 }
 
 async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | null): Promise<void> {
-  if (data.type == NodeType.ACTION && !data.actions?.length) throw new Error("At least one action needed");
-  if (data.type == NodeType.CONDITIONAL && !data.conditions?.length) throw new Error("At least one condition needed");
+  if (data.type == NodeType.CONDITIONAL && !data.configuration && !data.configuration?.["condtions"])
+    throw new Error("At least one condition needed");
+  if (data.type == NodeType.CONDITIONAL && !data.configuration && !data.configuration?.["map"])
+    throw new Error("At least one map rule needed");
   if (prevNode?.type == NodeType.CONDITIONAL && data.condition == NodeEdgesCondition.NONE) {
     throw new Error(
       `Condition must be ('${NodeEdgesCondition.ON_TRUE}' or '${NodeEdgesCondition.ON_FALSE}') for Conditional parent node`
@@ -423,15 +350,8 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
     throw new Error(`Condition must be '${NodeEdgesCondition.NONE}' for non-Conditional parent node`);
   }
 
-  if (data.type == NodeType.LOOP && !data.configuration && !data.configuration?.["loop_configuration"])
-    throw new Error("Loop Configuration is required for Loop Node");
-  if (data.type != NodeType.LOOP && data.configuration?.["loop_configuration"])
-    throw new Error("Loop Configuration is only for Loop Node");
-
   if (data.type == NodeType.SWITCH && !data.configuration && !data.configuration?.["switch_cases"])
-    throw new Error("Switch Cases is required for Switch Node");
-  if (data.type != NodeType.SWITCH && data.configuration?.["switch_cases"])
-    throw new Error("Switch Cases is only for Switch Node");
+    throw new Error("At least one switch case is required for Switch Node");
 }
 
 // async function checkUpdateNodeValidations(data: CreateNodeRecord, prevNode: Node | null) {

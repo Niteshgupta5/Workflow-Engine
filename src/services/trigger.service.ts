@@ -28,7 +28,7 @@ export async function createTrigger(data: CreateTriggerRecord): Promise<Trigger>
         name: data.name,
         type: data.type,
         configuration: data.configuration as JsonConfig,
-        // ...(activeTrigger ? { is_active: false } : {}),
+        ...(activeTrigger ? { is_active: false } : {}),
       },
     });
   } catch (error) {

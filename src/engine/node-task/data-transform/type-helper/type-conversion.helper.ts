@@ -9,7 +9,6 @@ export const convertTypes = (obj: DataObject, conversions: Record<string, Conver
   if (obj == null || typeof obj !== "object") {
     return obj;
   }
-
   const result = { ...obj };
 
   for (const [field, targetType] of Object.entries(conversions)) {

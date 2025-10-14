@@ -1,16 +1,29 @@
-import Joi from "joi";
+import Joi, { ObjectSchema } from "joi";
 import {
+  AggregateRule,
   AggregationOperation,
   CodeBlockLanguage,
+  CodeBlockRule,
+  ConcatRule,
   ConversionType,
+  ConvertTypeRule,
+  DateFormatRule,
   DateOperation,
+  DateOperationRule,
+  FilterRule,
+  GroupRule,
+  MapRule,
+  MergeRule,
   MergeStrategy,
+  RemoveRule,
+  RenameRule,
+  SplitRule,
   TimestampOperation,
+  TimestampRule,
   TimeUnit,
-  TransformationType,
 } from "../../types";
 
-const mapRule = Joi.object({
+export const mapRule: ObjectSchema<MapRule> = Joi.object({
   source: Joi.string().required(),
   target: Joi.string().required(),
   strategy: Joi.string()
@@ -18,20 +31,20 @@ const mapRule = Joi.object({
     .optional(),
 });
 
-const renameRule = Joi.object({
+export const renameRule: ObjectSchema<RenameRule> = Joi.object({
   from: Joi.string().required(),
   to: Joi.string().required(),
 });
 
-const removeRule = Joi.object({
+export const removeRule: ObjectSchema<RemoveRule> = Joi.object({
   fields: Joi.array().items(Joi.string()).min(1).required(),
 });
 
-const filterRule = Joi.object({
+export const filterRule: ObjectSchema<FilterRule> = Joi.object({
   condition: Joi.string().required(),
 });
 
-const aggregateRule = Joi.object({
+export const aggregateRule: ObjectSchema<AggregateRule> = Joi.object({
   groupBy: Joi.array().items(Joi.string()).required(),
   operations: Joi.array()
     .items(
@@ -46,36 +59,36 @@ const aggregateRule = Joi.object({
     .required(),
 });
 
-const groupRule = Joi.object({
+export const groupRule: ObjectSchema<GroupRule> = Joi.object({
   groupBy: Joi.array().items(Joi.string()).min(1).required(),
 });
 
-const concatRule = Joi.object({
+export const concatRule: ObjectSchema<ConcatRule> = Joi.object({
   sources: Joi.array().items(Joi.string()).min(2).required(),
   target: Joi.string().required(),
   separator: Joi.string().optional(),
 });
 
-const codeBlockRule = Joi.object({
+export const codeBlockRule: ObjectSchema<CodeBlockRule> = Joi.object({
   expression: Joi.string().required(),
   language: Joi.string()
     .valid(...Object.values(CodeBlockLanguage))
     .required(),
 });
 
-const convertTypeRule = Joi.object({
+export const convertTypeRule: ObjectSchema<ConvertTypeRule> = Joi.object({
   field: Joi.string().required(),
   toType: Joi.string()
     .valid(...Object.values(ConversionType))
     .required(),
 });
 
-const mergeRule = Joi.object({
+export const mergeRule: ObjectSchema<MergeRule> = Joi.object({
   sources: Joi.array().items(Joi.string()).min(2).required(),
   target: Joi.string().required(),
 });
 
-const splitRule = Joi.object({
+export const splitRule: ObjectSchema<SplitRule> = Joi.object({
   field: Joi.string().required(),
   separator: Joi.string().required(),
   target: Joi.string().required(),
@@ -83,14 +96,14 @@ const splitRule = Joi.object({
   trim: Joi.boolean().optional(),
 });
 
-const dateFormatRule = Joi.object({
+export const dateFormatRule: ObjectSchema<DateFormatRule> = Joi.object({
   field: Joi.string().required(),
   format: Joi.string().required(),
   target: Joi.string().optional(),
   timezone: Joi.string().optional(),
 });
 
-const dateOperationRule = Joi.object({
+export const dateOperationRule: ObjectSchema<DateOperationRule> = Joi.object({
   field: Joi.string().required(),
   operation: Joi.string()
     .valid(...Object.values(DateOperation))
@@ -102,7 +115,7 @@ const dateOperationRule = Joi.object({
   target: Joi.string().optional(),
 });
 
-const timestampRule = Joi.object({
+export const timestampRule: ObjectSchema<TimestampRule> = Joi.object({
   field: Joi.string().required(),
   target: Joi.string().required(),
   unit: Joi.string()
@@ -112,62 +125,3 @@ const timestampRule = Joi.object({
     .valid(...Object.values(TimestampOperation))
     .optional(),
 });
-
-export const dataTransformRuleSchema = Joi.alternatives().conditional("...transformation_type", [
-  {
-    is: TransformationType.MAP,
-    then: Joi.array().items(mapRule).min(1).required(),
-  },
-  {
-    is: Joi.valid(TransformationType.RENAME, TransformationType.COPY),
-    then: renameRule.required(),
-  },
-  {
-    is: TransformationType.REMOVE,
-    then: removeRule.required(),
-  },
-  {
-    is: TransformationType.FILTER,
-    then: filterRule.required(),
-  },
-  {
-    is: TransformationType.AGGREGATE,
-    then: aggregateRule.required(),
-  },
-  {
-    is: TransformationType.GROUP,
-    then: groupRule.required(),
-  },
-  {
-    is: Joi.valid(TransformationType.CONCAT, TransformationType.FORMULA),
-    then: concatRule.required(),
-  },
-  {
-    is: TransformationType.CODE_BLOCK,
-    then: codeBlockRule.required(),
-  },
-  {
-    is: TransformationType.CONVERT_TYPE,
-    then: convertTypeRule.required(),
-  },
-  {
-    is: TransformationType.MERGE,
-    then: mergeRule.required(),
-  },
-  {
-    is: TransformationType.SPLIT,
-    then: splitRule.required(),
-  },
-  {
-    is: TransformationType.DATE_FORMAT,
-    then: dateFormatRule.required(),
-  },
-  {
-    is: TransformationType.DATE_OPERATION,
-    then: dateOperationRule.required(),
-  },
-  {
-    is: TransformationType.TIMESTAMP,
-    then: timestampRule.required(),
-  },
-]);

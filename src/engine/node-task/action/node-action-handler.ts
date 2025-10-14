@@ -1,6 +1,6 @@
 import { Node } from "@prisma/client";
-import { getNextNodeId, getNodeActions, logTaskExecution, updateTaskLog } from "../../../services";
-import { ExecutionStatus, NodeEdgesCondition, TaskStatus } from "../../../types";
+import { getNextNodeId } from "../../../services";
+import { ExecutionResult, ExecutionStatus, NodeEdgesCondition } from "../../../types";
 import { sleep } from "../../../utils";
 import { actionHandlers } from "./action-handler";
 
@@ -9,76 +9,51 @@ import { actionHandlers } from "./action-handler";
  */
 export async function handleActionNode(
   node: Node,
-  nodeLogId: string,
   context: Record<string, any> = {},
   prevNodeId: string | null = null,
   groupId: string | null = null
-): Promise<{ status: ExecutionStatus; nextNodeId: string | null; error?: Error }> {
+): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let prevActionId: string | null = null; // To fetch results of previous action if needed
   let error: Error | undefined = undefined;
+  let attempts: number = 0;
+  const maxAttempts: number = node.retry_attempts ?? 0;
+  const delayMs: number = node.retry_delay_ms ?? 0;
 
-  const nodeActions = await getNodeActions(node.id);
+  while (attempts <= maxAttempts) {
+    try {
+      const handler = actionHandlers[node.type];
+      if (!handler) {
+        throw new Error(`Unsupported Node type: ${node.type}`);
+      }
 
-  for (const action of nodeActions) {
-    console.log(`⚡ Running action: ${action.action_name} for node: ${node.name}`);
-    let attempts = 0;
-    const maxAttempts = action.retry_attempts ?? 0;
-    const delayMs = action.retry_delay_ms ?? 0;
+      const result = await handler(node.config, context);
+      context.output[node.id] = {
+        name: node.name,
+        result,
+        retry_attempts: attempts,
+      };
 
-    const taskLog = await logTaskExecution({
-      node_log_id: nodeLogId,
-      task_id: action.id,
-      task_type: node.type,
-      status: TaskStatus.RUNNING,
-    });
+      break;
+    } catch (err) {
+      nodeStatus = ExecutionStatus.FAILED;
 
-    while (attempts <= maxAttempts) {
-      try {
-        const handler = actionHandlers[action.action_name];
-        if (!handler) {
-          throw new Error(`Unsupported action name: ${action.action_name}`);
-        }
+      context.output[node.id] = {
+        name: node.name,
+        result: { error: String(err) },
+        retry_attempts: attempts,
+      };
 
-        const result = await handler(action, context);
-        context.output[action.id] = {
-          action_name: action.action_name,
-          result,
-          retry_attempts: attempts,
-        };
-
-        await updateTaskLog(taskLog.id, {
-          status: TaskStatus.COMPLETED,
-          data: result,
-        });
-
+      if (attempts < maxAttempts) {
+        console.warn(`Node ${node.name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`);
+        attempts++;
+        await sleep(delayMs);
+      } else {
+        error = err as Error;
         break;
-      } catch (err) {
-        await updateTaskLog(taskLog.id, {
-          status: TaskStatus.FAILED,
-          data: { error: String(err) },
-        });
-        nodeStatus = ExecutionStatus.FAILED;
-
-        context.output[action.id] = {
-          action_name: action.action_name,
-          result: { error: String(err) },
-          retry_attempts: attempts,
-        };
-
-        if (attempts < maxAttempts) {
-          console.warn(`Action ${action.action_name} failed on attempt ${attempts}, retrying in ${delayMs}ms...`);
-          attempts++;
-          await sleep(delayMs);
-        } else {
-          error = err as Error;
-          break;
-        }
       }
     }
-    context.lastExecutedSubTaskId = action.id;
-    prevActionId = action.id;
   }
+  context.last_executed_task_id = node.id;
 
   const nextNodeId = await getNextNodeId(node.id, NodeEdgesCondition.NONE, groupId);
   return { status: nodeStatus, nextNodeId, error };

@@ -23,6 +23,7 @@ export async function executeSubgraph(
       executionContext.output[currentNode.id] = { loop_node_id: loopNode.id };
     }
     executionContext.output[currentNode.id][iteration] = result.nodeResult;
+    if (result.error) throw result.error;
     prevNodeId = currentNode.id;
     currentNode = result.nextNode;
   } while (currentNode?.id !== loopNode.id && currentNode !== null);
