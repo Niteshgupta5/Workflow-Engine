@@ -1,4 +1,4 @@
-import pkg, { isDate, isNumber, trim } from "lodash";
+import pkg from "lodash";
 import { spawn } from "child_process";
 import fs from "fs/promises";
 import os from "os";
@@ -15,7 +15,7 @@ import {
   PATTERNS,
 } from "../constants";
 import { isValid, parse, parseISO } from "date-fns";
-const { isNil, isEmpty, isObjectLike, isString } = pkg;
+const { isNil, isEmpty, isObjectLike, isString, isDate, isNumber, trim } = pkg;
 
 export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
   let variableValue = undefined;
