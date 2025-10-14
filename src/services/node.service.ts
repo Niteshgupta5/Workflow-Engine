@@ -313,7 +313,7 @@ async function getSwitchCaseEdgeExpression(
   prevNode: Node,
   condition: NodeEdgesCondition | SwitchCaseCondition
 ): Promise<string | undefined> {
-  if (prevNode.type != NodeType.SWITCH || !patterns.switch_case.test(condition)) return undefined;
+  if (prevNode.type != NodeType.SWITCH || !PATTERNS.switch_case.test(condition)) return undefined;
   const config = prevNode.config;
   if (!config || typeof config !== "object" || Array.isArray(config)) return undefined;
 

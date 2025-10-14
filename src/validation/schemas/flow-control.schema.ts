@@ -1,12 +1,12 @@
 import Joi, { ObjectSchema } from "joi";
-import { patterns } from "../../constants";
+import { PATTERNS } from "../../constants";
 import { ComparisonOperator, ConditionalConfig, LoopConfig, LoopType, SwitchConfig } from "../../types";
 
 export const switchConfigurationSchema: {
   body: ObjectSchema<SwitchConfig>;
 } = {
   body: Joi.object().keys({
-    condition: Joi.string().pattern(patterns.switch_case).required().messages({
+    condition: Joi.string().pattern(PATTERNS.switch_case).required().messages({
       "string.pattern.base": "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
       "any.required": "Condition is required for switch case configuration.",
     }),
