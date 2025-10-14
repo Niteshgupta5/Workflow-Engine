@@ -53,7 +53,6 @@ export async function handleActionNode(
       }
     }
   }
-  context.last_executed_task_id = node.id;
 
   const nextNodeId = await getNextNodeId(node.id, NodeEdgesCondition.NONE, groupId);
   return { status: nodeStatus, nextNodeId, error };

@@ -22,9 +22,7 @@ export const handleDataTransformNode = async (
       throw new Error("Data Transform configuration not found");
     }
 
-    const prevOutput = prevNodeId
-      ? context.output?.[context.last_executed_subtask_id]?.result
-      : context.input || context.data || {};
+    const prevOutput = prevNodeId ? context.output?.[prevNodeId] : context.input || context.data || {};
     const typeKey = node.type as keyof TransformationRuleMap;
     const handler = transformationHandlers[typeKey];
 
