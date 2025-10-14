@@ -4,7 +4,7 @@
 
 import { ComparisonOperator } from "../../../../types";
 
-export const evaluateCondition = (fieldValue: unknown, operator: ComparisonOperator, value: unknown): boolean => {
+export const evaluateComparison = (fieldValue: unknown, operator: ComparisonOperator, value: unknown): boolean => {
   switch (operator) {
     case ComparisonOperator.EQUALS:
       return fieldValue == value;

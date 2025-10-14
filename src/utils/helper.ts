@@ -7,18 +7,10 @@ import { Worker } from "worker_threads";
 
 import { CodeBlockLanguage, CodeExecutionResult, ExecutionLimits } from "../types";
 import { ExecutionMemoryError, ExecutionTimeoutError } from "../exceptions";
-import {
-  DEFAULT_CPU_TIME_MS,
-  DEFAULT_MEMORY_LIMIT_KB,
-  DEFAULT_TIMEOUT_MS,
-  LANGUAGE_CONFIGS,
-} from "../constants";
+import { DEFAULT_CPU_TIME_MS, DEFAULT_MEMORY_LIMIT_KB, DEFAULT_TIMEOUT_MS, LANGUAGE_CONFIGS } from "../constants";
 const { isNil, isEmpty, isObjectLike, isString } = pkg;
 
-export function evaluateCondition(
-  expression: string,
-  context: Record<string, any>
-): { status: boolean; value: any } {
+export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
   let variableValue = undefined;
   try {
     let value: any = context;
@@ -36,7 +28,7 @@ export function evaluateCondition(
     return { status: Boolean(fn()), value: variableValue };
   } catch (error) {
     console.error("Condition evaluation failed:", error);
-    return { status: false, value: variableValue };
+    throw error;
   }
 }
 
@@ -152,8 +144,7 @@ export const executeCodeBlock = async (
 
     // Dynamic language execution via child process
     const config = LANGUAGE_CONFIGS[language];
-    if (!config)
-      return formatExecutionResult(false, `Unsupported language: ${language}`, startTime);
+    if (!config) return formatExecutionResult(false, `Unsupported language: ${language}`, startTime);
 
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "code-exec-"));
     const sourceFile = path.join(tempDir, `code${config.fileExtension}`);
@@ -173,11 +164,7 @@ export const executeCodeBlock = async (
       );
       if (!compileResult.success) {
         await cleanup(tempDir);
-        return formatExecutionResult(
-          false,
-          `Compilation failed:\n${compileResult.error}`,
-          startTime
-        );
+        return formatExecutionResult(false, `Compilation failed:\n${compileResult.error}`, startTime);
       }
       execCommand = compiledFile;
       execArgs = config.runArgs ? config.runArgs(sourceFile) : [];
@@ -185,14 +172,7 @@ export const executeCodeBlock = async (
       execArgs = config.runArgs!(sourceFile);
     }
 
-    const result = await runProcess(
-      execCommand,
-      execArgs,
-      timeoutMs,
-      memoryLimitKB,
-      cpuTimeMs,
-      input
-    );
+    const result = await runProcess(execCommand, execArgs, timeoutMs, memoryLimitKB, cpuTimeMs, input);
 
     await cleanup(tempDir);
     return formatExecutionResult(result.success, result.output || result.error, startTime, result);
@@ -201,11 +181,7 @@ export const executeCodeBlock = async (
   }
 };
 
-const runJsInWorker = (
-  code: string,
-  timeoutMs: number,
-  startTime?: number
-): Promise<CodeExecutionResult> => {
+const runJsInWorker = (code: string, timeoutMs: number, startTime?: number): Promise<CodeExecutionResult> => {
   return new Promise((resolve, reject) => {
     const worker = new Worker(
       `
@@ -228,8 +204,7 @@ const runJsInWorker = (
 
     worker.on("message", (msg: any) => {
       clearTimeout(timeout);
-      if (msg.success)
-        resolve(formatExecutionResult(true, JSON.stringify(msg.result, null, 2), startTime));
+      if (msg.success) resolve(formatExecutionResult(true, JSON.stringify(msg.result, null, 2), startTime));
       else reject(new Error(msg.error));
     });
 
@@ -239,6 +214,7 @@ const runJsInWorker = (
     });
   });
 };
+
 /**
  * Run a language command or compiled binary with resource limits.
  */
@@ -258,9 +234,7 @@ const runProcess = (
     if (platform === "linux" || platform === "darwin") {
       const cpuSec = Math.ceil((cpuTimeMs ?? timeoutMs) / 1000);
       const ulimitCmd =
-        platform === "linux"
-          ? `ulimit -v ${memoryLimitKB} && ulimit -t ${cpuSec}`
-          : `ulimit -t ${cpuSec}`;
+        platform === "linux" ? `ulimit -v ${memoryLimitKB} && ulimit -t ${cpuSec}` : `ulimit -t ${cpuSec}`;
       finalCommand = "sh";
       finalArgs = ["-c", `${ulimitCmd} && ${command} ${args.join(" ")}`];
     }

@@ -1,127 +1,7 @@
-import Joi, { AlternativesSchema, ObjectSchema } from "joi";
-import {
-  ActionName,
-  CreateNodeRecord,
-  HttpMethod,
-  IdParameter,
-  LoopType,
-  NodeConfiguration,
-  NodeEdgesCondition,
-  NodeType,
-  CodeBlockLanguage,
-  SwitchCaseConfiguration,
-  TransformationType,
-  UpdateNodeRecord,
-} from "../../types";
+import Joi, { ObjectSchema } from "joi";
+import { CreateNodeRecord, IdParameter, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../../types";
 import { patterns, START_NODE_ID } from "../../constants";
-import { dataTransformRuleSchema } from "./data-transform.schema";
-
-const baseParamsSchema = Joi.object({
-  table: Joi.string().when(Joi.ref("...action_name"), {
-    is: ActionName.UPDATE_DATABASE,
-    then: Joi.required(),
-    otherwise: Joi.forbidden(),
-  }),
-
-  data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
-
-  url: Joi.string()
-    .pattern(patterns.url)
-    .when(Joi.ref("...action_name"), {
-      is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-      then: Joi.required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-  method: Joi.string()
-    .valid(...Object.values(HttpMethod))
-    .when(Joi.ref("...action_name"), {
-      is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-      then: Joi.required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-  body: Joi.object().optional(),
-});
-
-export const actionSchema = {
-  body: Joi.object({
-    action_name: Joi.string()
-      .valid(...Object.values(ActionName))
-      .required(),
-
-    params: baseParamsSchema.required(),
-
-    retry_attempts: Joi.number().integer().min(0).max(3).optional(),
-    retry_delay_ms: Joi.number().integer().min(0).optional(),
-  }),
-};
-
-const conditionSchema = {
-  body: Joi.object().keys({
-    expression: Joi.string().required(),
-  }),
-};
-
-const loopConfigurationSchema = {
-  body: Joi.object().keys({
-    loop_type: Joi.string()
-      .valid(...Object.values(LoopType))
-      .required(),
-    max_iterations: Joi.when("loop_type", {
-      is: LoopType.FIXED,
-      then: Joi.number().integer().min(1).required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    exit_condition: Joi.when("loop_type", {
-      is: LoopType.WHILE,
-      then: Joi.string().required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    data_source_path: Joi.when("loop_type", {
-      is: LoopType.FOR_EACH,
-      then: Joi.string().required(),
-      otherwise: Joi.forbidden(),
-    }),
-  }),
-};
-
-const switchConfigurationSchema: {
-  body: ObjectSchema<SwitchCaseConfiguration>;
-} = {
-  body: Joi.object().keys({
-    condition: Joi.string().pattern(patterns.switch_case).required().messages({
-      "string.pattern.base":
-        "Configuration cases condition must be a valid switch case (e.g., case_1, case_2, ...).",
-      "any.required": "Condition is required for switch case configuration.",
-    }),
-    expression: Joi.string().required(),
-  }),
-};
-
-export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> =
-  Joi.alternatives().conditional("type", [
-    {
-      is: NodeType.LOOP,
-      then: Joi.object({
-        loop_configuration: loopConfigurationSchema.body.required(),
-      }),
-    },
-    {
-      is: NodeType.SWITCH,
-      then: Joi.object({
-        switch_cases: Joi.array().items(switchConfigurationSchema.body).min(1).required(),
-      }),
-    },
-    {
-      is: NodeType.DATA_TRANSFORM,
-      then: Joi.object({
-        transform_rules: dataTransformRuleSchema.required(),
-      }),
-    },
-  ]);
+import { nodeConfigurationSchema } from "./node-config.schema";
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
   body: Joi.object().keys({
@@ -130,31 +10,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
       .valid(...Object.values(NodeType))
       .required(),
     name: Joi.string().min(3).max(255).required(),
-    transformation_type: Joi.when("type", {
-      is: NodeType.DATA_TRANSFORM,
-      then: Joi.string()
-        .valid(...Object.values(TransformationType))
-        .required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    actions: Joi.array().items(actionSchema.body).when("type", {
-      is: NodeType.ACTION,
-      then: Joi.required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    conditions: Joi.array().items(conditionSchema.body).when("type", {
-      is: NodeType.CONDITIONAL,
-      then: Joi.required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH, NodeType.DATA_TRANSFORM),
-      then: nodeConfigurationSchema.required(),
-      otherwise: Joi.forbidden(),
-    }),
+    configuration: nodeConfigurationSchema.required(),
     prev_node_id: Joi.string().uuid().optional().default(START_NODE_ID),
     next_node_id: Joi.string().uuid().optional(),
     condition: Joi.string()
@@ -173,53 +29,8 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
         otherwise: Joi.forbidden(),
       }),
     group_id: Joi.string().uuid().optional(),
-  }),
-};
-
-const updateActionSchema = {
-  body: Joi.object().keys({
-    id: Joi.string().uuid().optional(),
-    action_name: Joi.string()
-      .valid(...Object.values(ActionName))
-      .required(),
-
-    params: Joi.object({
-      table: Joi.string().when(Joi.ref("...action_name"), {
-        is: ActionName.UPDATE_DATABASE,
-        then: Joi.required(),
-        otherwise: Joi.forbidden(),
-      }),
-
-      data: Joi.alternatives().try(Joi.string(), Joi.object()).optional(),
-
-      url: Joi.string()
-        .pattern(patterns.url)
-        .when(Joi.ref("...action_name"), {
-          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-          then: Joi.required(),
-          otherwise: Joi.forbidden(),
-        }),
-
-      method: Joi.string()
-        .valid(...Object.values(HttpMethod))
-        .when(Joi.ref("...action_name"), {
-          is: Joi.valid(ActionName.SEND_HTTP_REQUEST, ActionName.SEND_EMAIL),
-          then: Joi.required(),
-          otherwise: Joi.forbidden(),
-        }),
-
-      body: Joi.object().optional(),
-    }).required(),
-
-    retry_attempts: Joi.number().integer().min(0).max(3).optional(),
-    retry_delay_ms: Joi.number().integer().min(0).optional(),
-  }),
-};
-
-const updateConditionSchema = {
-  body: Joi.object().keys({
-    id: Joi.string().uuid().optional(),
-    expression: Joi.string().required(),
+    retry_attempts: Joi.number().integer().allow(null).optional(),
+    retry_delay_ms: Joi.number().integer().allow(null).optional(),
   }),
 };
 
@@ -229,38 +40,9 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .valid(...Object.values(NodeType))
       .required(),
     name: Joi.string().min(3).max(255).required(),
-
-    transformation_type: Joi.when("type", {
-      is: NodeType.DATA_TRANSFORM,
-      then: Joi.string()
-        .valid(...Object.values(TransformationType))
-        .required(),
-      otherwise: Joi.forbidden(),
-    }),
-
-    actions: Joi.array()
-      .items(updateActionSchema.body)
-      .when("type", {
-        is: NodeType.ACTION,
-        then: Joi.required(),
-        otherwise: Joi.forbidden(),
-      })
-      .optional(),
-
-    conditions: Joi.array()
-      .items(updateConditionSchema.body)
-      .when("type", {
-        is: NodeType.CONDITIONAL,
-        then: Joi.required(),
-        otherwise: Joi.forbidden(),
-      })
-      .optional(),
-
-    configuration: Joi.when("type", {
-      is: Joi.valid(NodeType.LOOP, NodeType.SWITCH, NodeType.DATA_TRANSFORM),
-      then: nodeConfigurationSchema.required(),
-      otherwise: Joi.forbidden(),
-    }).optional(),
+    configuration: nodeConfigurationSchema.required(),
+    retry_attempts: Joi.number().integer().optional(),
+    retry_delay_ms: Joi.number().integer().optional(),
   }),
 };
 

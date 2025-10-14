@@ -5,8 +5,8 @@ import { patterns } from "../../constants";
 export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
   body: Joi.object().keys({
     workflow_id: Joi.string().uuid().required(),
-    source_node_id: Joi.string().uuid().required(),
-    target_node_id: Joi.string().uuid().required(),
+    source: Joi.string().uuid().required(),
+    target: Joi.string().uuid().required(),
     condition: Joi.string()
       .custom((value, helpers) => {
         if (Object.values(NodeEdgesCondition).includes(value as NodeEdgesCondition)) return value;

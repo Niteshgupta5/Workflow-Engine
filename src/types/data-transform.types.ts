@@ -4,9 +4,9 @@ import {
   ConversionType,
   DateOperation,
   MergeStrategy,
+  NodeType,
   TimestampOperation,
   TimeUnit,
-  TransformationType,
 } from "./enums";
 
 export interface MapRule {
@@ -98,21 +98,21 @@ export interface CodeBlockRule {
   expression: string;
 }
 export interface TransformationRuleMap {
-  [TransformationType.MAP]: { map: MapRule[] };
-  [TransformationType.RENAME]: RenameRule;
-  [TransformationType.REMOVE]: RemoveRule;
-  [TransformationType.FILTER]: FilterRule;
-  [TransformationType.CODE_BLOCK]: CodeBlockRule;
-  [TransformationType.CONVERT_TYPE]: ConvertTypeRule;
-  [TransformationType.MERGE]: MergeRule;
-  [TransformationType.SPLIT]: SplitRule;
-  [TransformationType.DATE_FORMAT]: DateFormatRule;
-  [TransformationType.DATE_OPERATION]: DateOperationRule;
-  [TransformationType.TIMESTAMP]: TimestampRule;
-  [TransformationType.COPY]: CopyRule;
-  [TransformationType.AGGREGATE]: AggregateRule;
-  [TransformationType.GROUP]: GroupRule;
-  [TransformationType.CONCAT]: ConcatRule;
+  [NodeType.MAP]: { map: MapRule[] };
+  [NodeType.RENAME]: RenameRule;
+  [NodeType.REMOVE]: RemoveRule;
+  [NodeType.FILTER]: FilterRule;
+  [NodeType.CODE_BLOCK]: CodeBlockRule;
+  [NodeType.CONVERT_TYPE]: ConvertTypeRule;
+  [NodeType.MERGE]: MergeRule;
+  [NodeType.SPLIT]: SplitRule;
+  [NodeType.DATE_FORMAT]: DateFormatRule;
+  [NodeType.DATE_OPERATION]: DateOperationRule;
+  [NodeType.TIMESTAMP]: TimestampRule;
+  [NodeType.COPY]: CopyRule;
+  [NodeType.AGGREGATE]: AggregateRule;
+  [NodeType.GROUP]: GroupRule;
+  [NodeType.CONCAT]: ConcatRule;
 }
 
 export type DataTransformationRuleConfig =
@@ -131,11 +131,5 @@ export type DataTransformationRuleConfig =
   | AggregateRule
   | GroupRule
   | ConcatRule;
-
-export interface createDataTransformNode {
-  node_id: string;
-  transformation_type: TransformationType;
-  transform_rules: DataTransformationRuleConfig;
-}
 
 export type DataObject = Record<string, any>;

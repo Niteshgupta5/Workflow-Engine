@@ -1,24 +1,24 @@
-import { ActionName, HttpMethod } from "../../../types";
+import { HttpMethod, NodeType } from "../../../types";
 import { httpRequest, resolveTemplate } from "../../../utils";
 
 type ActionHandler = (node: any, context: any) => Promise<any>;
 
 export const actionHandlers: Record<string, ActionHandler> = {
-  [ActionName.SEND_EMAIL]: async (action, context) => {
-    const { url, method = HttpMethod.POST, body = {} } = action.params;
+  [NodeType.SEND_EMAIL]: async (config, context) => {
+    const { url, method = HttpMethod.POST, body = {} } = config;
     const resolvedBody = resolveTemplate(body, context);
     const res = await httpRequest(method, url, resolvedBody);
-    return { success: true, status: res.status };
+    return { success: true, status: res.status, ...res };
   },
 
-  [ActionName.SEND_HTTP_REQUEST]: async (action, context) => {
-    const { url, method = HttpMethod.GET, headers = {}, params = {}, body = {} } = action.params;
+  [NodeType.SEND_HTTP_REQUEST]: async (config, context) => {
+    const { url, method = HttpMethod.GET, headers = {}, params = {}, body = {} } = config;
     const resolvedBody = resolveTemplate(body, context);
     const res = await httpRequest(method, url, resolvedBody);
-    return { success: true, data: res.data };
+    return { success: true, status: res.status, ...res };
   },
 
-  [ActionName.UPDATE_DATABASE]: async (action, context) => {
+  [NodeType.UPDATE_DATABASE]: async (config, context) => {
     return { success: true, updated: true };
   },
 };

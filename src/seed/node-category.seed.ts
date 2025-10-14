@@ -7,7 +7,7 @@ const SEED_VERSION = 1;
 export async function seedNodeCategories() {
   const existing = await prisma.seed.findUnique({ where: { name: SEED_NAME } });
   if (existing && existing.version >= SEED_VERSION) {
-    console.log("NodeCategorySeed already applied with current version");
+    console.log(`${SEED_NAME} already applied with current version`);
     return;
   }
 
@@ -26,5 +26,5 @@ export async function seedNodeCategories() {
     create: { name: SEED_NAME, version: SEED_VERSION },
   });
 
-  console.log("NodeCategorySeed applied successfully");
+  console.log(`${SEED_NAME} applied successfully`);
 }

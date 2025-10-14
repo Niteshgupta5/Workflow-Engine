@@ -1,6 +1,6 @@
-import { Node, NodeEdge } from "@prisma/client";
+import { Edge, Node } from "@prisma/client";
 import { getAllOutgoingEdgesForSwitchNode } from "../../../services";
-import { ExecutionStatus, NodeEdgesCondition } from "../../../types";
+import { ExecutionResult, ExecutionStatus, NodeEdgesCondition } from "../../../types";
 import { evaluateCondition } from "../../../utils";
 
 /**
@@ -8,43 +8,49 @@ import { evaluateCondition } from "../../../utils";
  */
 export async function handleSwitchNode(
   node: Node,
-  nodeLogId: string,
   context: Record<string, any>,
   prevNodeId: string | null = null,
   groupId: string | null = null
-): Promise<{ status: ExecutionStatus; nextNodeId: string | null }> {
+): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
+  let error: Error | undefined = undefined;
 
-  const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(node.id);
-  if (!outgoingEdges.length) {
-    nodeStatus = ExecutionStatus.FAILED;
-    throw new Error(`Switch node ${node.id} has no cases`);
-  }
-
-  let selectedEdge: NodeEdge | undefined;
-
-  for (const edge of outgoingEdges) {
-    if (edge.condition === NodeEdgesCondition.NONE) {
-      selectedEdge ??= edge; // fallback edge
-      continue;
+  try {
+    const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(node.id);
+    if (!outgoingEdges.length) {
+      nodeStatus = ExecutionStatus.FAILED;
+      throw new Error(`Switch node ${node.name} has no cases`);
     }
-    if (edge.expression) {
-      const result = evaluateCondition(edge.expression, context);
-      context.output[node.id] = {
-        ...context.output[node.id],
-        expression: edge.expression,
-        success: result.status,
-        matchedValue: result.value,
-      };
-      if (result.status) {
-        console.log(`🔍 Evaluating expression: ${edge.expression} for node: ${node.name}`);
-        selectedEdge = edge;
-        break;
+
+    let selectedEdge: Edge | undefined;
+
+    for (const edge of outgoingEdges) {
+      if (edge.condition === NodeEdgesCondition.NONE) {
+        selectedEdge ??= edge; // fallback edge
+        continue;
+      }
+      if (edge.expression) {
+        const result = evaluateCondition(edge.expression, context);
+        context.output[node.id] = {
+          ...context.output[node.id],
+          expression: edge.expression,
+          success: result.status,
+          matchedValue: result.value,
+        };
+        if (result.status) {
+          console.log(`🔍 Evaluating expression: ${edge.expression} for node: ${node.name}`);
+          selectedEdge = edge;
+          break;
+        }
       }
     }
+
+    if (!selectedEdge) nodeStatus = ExecutionStatus.FAILED;
+
+    return { status: nodeStatus, nextNodeId: selectedEdge?.target ?? null, error };
+  } catch (err) {
+    error = err as Error;
+    nodeStatus = ExecutionStatus.FAILED;
+    return { status: nodeStatus, nextNodeId: null, error };
   }
-
-  if (!selectedEdge) nodeStatus = ExecutionStatus.FAILED;
-
-  return { status: nodeStatus, nextNodeId: selectedEdge?.target_node_id ?? null };
 }
