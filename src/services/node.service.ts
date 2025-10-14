@@ -16,7 +16,7 @@ import {
   SwitchConfig,
   UpdateNodeRecord,
 } from "../types";
-import { patterns, START_NODE_ID } from "../constants";
+import { PATTERNS, START_NODE_ID } from "../constants";
 import { getTemplateIdByNodeType } from "./node-template.service";
 import { getWorkflowById } from "./workflow.service";
 
@@ -313,7 +313,7 @@ async function getSwitchCaseEdgeExpression(
   prevNode: Node,
   condition: NodeEdgesCondition | SwitchCaseCondition
 ): Promise<string | undefined> {
-  if (prevNode.type != NodeType.SWITCH || !patterns.switch_case.test(condition)) return undefined;
+  if (prevNode.type != NodeType.SWITCH || !PATTERNS.switch_case.test(condition)) return undefined;
   const config = prevNode.config;
   if (!config || typeof config !== "object" || Array.isArray(config)) return undefined;
 
@@ -333,7 +333,7 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
     );
   }
   if (prevNode?.type == NodeType.SWITCH && data.condition) {
-    const isValidSwitchCase = patterns.switch_case.test(data.condition);
+    const isValidSwitchCase = PATTERNS.switch_case.test(data.condition);
     // const isNone = data.condition === NodeEdgesCondition.NONE;
 
     if (!isValidSwitchCase) {

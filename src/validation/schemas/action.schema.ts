@@ -1,5 +1,5 @@
 import Joi, { ObjectSchema } from "joi";
-import { patterns } from "../../constants";
+import { PATTERNS } from "../../constants";
 import { HttpMethod, SendEmail, SendHttpRequest, UpdateDatabase } from "../../types";
 
 export const sendEmailSchema: { body: ObjectSchema<SendEmail> } = {
@@ -13,7 +13,7 @@ export const sendEmailSchema: { body: ObjectSchema<SendEmail> } = {
 
 export const sendHttpRequest: { body: ObjectSchema<SendHttpRequest> } = {
   body: Joi.object({
-    url: Joi.string().pattern(patterns.url).required(),
+    url: Joi.string().pattern(PATTERNS.url).required(),
     method: Joi.string()
       .valid(...Object.values(HttpMethod))
       .required(),

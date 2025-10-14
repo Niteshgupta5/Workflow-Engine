@@ -189,6 +189,8 @@ export const transformationHandlers: {
       return data.map((item) => performDateOperation(item, field, operation, value, unit, target));
     }
 
+    console.log({ a: performDateOperation(data, field, operation, value, unit, target) });
+
     return performDateOperation(data, field, operation, value, unit, target);
   },
 

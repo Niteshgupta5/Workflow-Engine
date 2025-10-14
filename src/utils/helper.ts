@@ -5,10 +5,17 @@ import os from "os";
 import path from "path";
 import { Worker } from "worker_threads";
 
-import { CodeBlockLanguage, CodeExecutionResult, ExecutionLimits } from "../types";
+import { CodeBlockLanguage, CodeExecutionResult, DateFormat, ExecutionLimits } from "../types";
 import { ExecutionMemoryError, ExecutionTimeoutError } from "../exceptions";
-import { DEFAULT_CPU_TIME_MS, DEFAULT_MEMORY_LIMIT_KB, DEFAULT_TIMEOUT_MS, LANGUAGE_CONFIGS } from "../constants";
-const { isNil, isEmpty, isObjectLike, isString } = pkg;
+import {
+  DEFAULT_CPU_TIME_MS,
+  DEFAULT_MEMORY_LIMIT_KB,
+  DEFAULT_TIMEOUT_MS,
+  LANGUAGE_CONFIGS,
+  PATTERNS,
+} from "../constants";
+import { isValid, parse, parseISO } from "date-fns";
+const { isNil, isEmpty, isObjectLike, isString, isDate, isNumber, trim } = pkg;
 
 export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
   let variableValue = undefined;
@@ -346,4 +353,73 @@ const cleanup = async (tempDir: string) => {
   } catch (error) {
     console.error("Failed to cleanup temp directory:", error);
   }
+};
+
+/**
+ * Parses any supported date/time input into a valid Date object.
+ * Supports all formats defined in DateFormat enum, including ISO and UNIX timestamps.
+ *
+ * @param value - Date string, timestamp (ms/sec), or Date instance
+ * @throws {Error} If the input cannot be parsed into a valid Date
+ * @returns A valid JavaScript Date object
+ */
+export const parseDateValue = (value: string | number | Date): Date => {
+  // Guard: null/undefined check
+  if (value == null) {
+    throw new Error("Invalid Date: value is null or undefined");
+  }
+
+  // Fast path: Already a Date instance
+  if (isDate(value)) {
+    if (isValid(value)) return value;
+    throw new Error("Invalid Date instance");
+  }
+
+  // Fast path: Numeric timestamp
+  if (isNumber(value)) {
+    const isLikelySeconds = value < 10_000_000_000;
+    const date = new Date(isLikelySeconds ? value * 1000 : value);
+    if (isValid(date)) return date;
+    throw new Error(`Invalid Date: numeric timestamp "${value}"`);
+  }
+
+  // Must be a string beyond this point
+  if (!isString(value)) {
+    throw new Error(`Invalid Date: expected string, received ${typeof value}`);
+  }
+
+  const trimmed = trim(value);
+  if (!trimmed) {
+    throw new Error("Invalid Date: empty string");
+  }
+
+  // Try numeric string timestamps (exactly 10 or 13+ digits)
+  if (PATTERNS.timestamp.test(trimmed)) {
+    const num = Number(trimmed);
+    const date = trimmed.length === 10 ? new Date(num * 1000) : new Date(num);
+    if (isValid(date)) return date;
+  }
+
+  // Try ISO 8601
+  let date = parseISO(trimmed);
+  if (isValid(date)) return date;
+
+  // Try all DateFormat enum formats (exclude non-date-fns tokens)
+  const excludedFormats = new Set([
+    DateFormat.UNIX, // "t" - not a date-fns format
+    DateFormat.UNIX_MS, // "T" - not a date-fns format
+  ]);
+  const candidateFormats = Object.values<DateFormat>(DateFormat).filter((fmt) => !excludedFormats.has(fmt));
+
+  for (const fmt of candidateFormats) {
+    date = parse(trimmed, fmt, new Date());
+    if (isValid(date)) return date;
+  }
+
+  // Try native JS Date parser (RFC 2822, locale formats)
+  date = new Date(trimmed);
+  if (isValid(date)) return date;
+
+  // No valid parse found
+  throw new Error(`Invalid Date: unable to parse "${value}"`);
 };

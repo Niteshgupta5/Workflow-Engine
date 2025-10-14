@@ -116,7 +116,7 @@ export const dateOperationRule: ObjectSchema<DateOperationRule> = Joi.object({
 });
 
 export const timestampRule: ObjectSchema<TimestampRule> = Joi.object({
-  field: Joi.string().optional(),
+  field: Joi.string().required(),
   target: Joi.string().required(),
   unit: Joi.string()
     .valid(...Object.values(TimeUnit))

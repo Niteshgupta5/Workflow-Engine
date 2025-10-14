@@ -1,6 +1,6 @@
 import Joi, { ObjectSchema } from "joi";
 import { CreateNodeEdgeRecord, IdParameter, NodeEdgesCondition } from "../../types";
-import { patterns } from "../../constants";
+import { PATTERNS } from "../../constants";
 
 export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
   body: Joi.object().keys({
@@ -10,7 +10,7 @@ export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
     condition: Joi.string()
       .custom((value, helpers) => {
         if (Object.values(NodeEdgesCondition).includes(value as NodeEdgesCondition)) return value;
-        if (patterns.switch_case.test(value)) return value;
+        if (PATTERNS.switch_case.test(value)) return value;
         return helpers.error("any.invalid");
       })
       .required()
@@ -21,7 +21,7 @@ export const nodeEdgeSchema: { body: ObjectSchema<CreateNodeEdgeRecord> } = {
       }),
     group_id: Joi.string().uuid().optional(),
     expression: Joi.string().when("condition", {
-      is: Joi.string().pattern(patterns.switch_case),
+      is: Joi.string().pattern(PATTERNS.switch_case),
       then: Joi.required(),
       otherwise: Joi.forbidden(),
     }),

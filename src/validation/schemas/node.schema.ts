@@ -1,6 +1,6 @@
 import Joi, { ObjectSchema } from "joi";
 import { CreateNodeRecord, IdParameter, NodeEdgesCondition, NodeType, UpdateNodeRecord } from "../../types";
-import { patterns, START_NODE_ID } from "../../constants";
+import { PATTERNS, START_NODE_ID } from "../../constants";
 import { nodeConfigurationSchema } from "./node-config.schema";
 
 export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
@@ -16,7 +16,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
     condition: Joi.string()
       .custom((value, helpers) => {
         if (Object.values(NodeEdgesCondition).includes(value as NodeEdgesCondition)) return value;
-        if (patterns.switch_case.test(value)) return value;
+        if (PATTERNS.switch_case.test(value)) return value;
         return helpers.error("any.invalid");
       })
       .when("prev_node_id", {
