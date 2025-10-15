@@ -1,7 +1,7 @@
 import { NodeCategoryType, NodeType } from "../../types";
 
 export const NODE_TEMPLATES = [
-  // 🟦 Action Nodes
+  // Action Nodes
   {
     name: "Send Email",
     type: NodeType.SEND_EMAIL,
@@ -21,7 +21,7 @@ export const NODE_TEMPLATES = [
     description: "Update or insert data into a database table",
   },
 
-  // 🟨 Flow Control
+  // Flow Control
   {
     name: "Conditional",
     type: NodeType.CONDITIONAL,
@@ -41,7 +41,7 @@ export const NODE_TEMPLATES = [
     description: "Branch execution based on multiple cases",
   },
 
-  // 🟩 Data Transformation
+  // Data Transformation
   ...[
     NodeType.MAP,
     NodeType.RENAME,
@@ -64,5 +64,13 @@ export const NODE_TEMPLATES = [
     type,
     category: NodeCategoryType.DATA_TRANSFORM,
     description: `Performs ${type.replace(/_/g, " ").toLowerCase()} transformation`,
+  })),
+
+  // Utilities
+  ...[NodeType.CODE_BLOCK].map((type) => ({
+    name: type.replace(/_/g, " ").toLowerCase(),
+    type,
+    category: NodeCategoryType.UTILITIES,
+    description: `Performs custom code ${type.replace(/_/g, " ").toLowerCase()} execution`,
   })),
 ];

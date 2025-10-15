@@ -86,6 +86,7 @@ export enum NodeCategoryType {
   ACTION = "action",
   FLOW_CONTROL = "flow_control",
   DATA_TRANSFORM = "data_transform",
+  UTILITIES = "utilities",
 }
 
 export enum ComparisonOperator {

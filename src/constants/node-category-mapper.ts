@@ -20,11 +20,13 @@ export const NODE_CATEGORY_MAPPER: Record<NodeType, NodeCategoryType> = {
   [NodeType.GROUP]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.CONCAT]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.FORMULA]: NodeCategoryType.DATA_TRANSFORM,
-  [NodeType.CODE_BLOCK]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.CONVERT_TYPE]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.MERGE]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.SPLIT]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.DATE_FORMAT]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.DATE_OPERATION]: NodeCategoryType.DATA_TRANSFORM,
   [NodeType.TIMESTAMP]: NodeCategoryType.DATA_TRANSFORM,
+
+  // Utilities
+  [NodeType.CODE_BLOCK]: NodeCategoryType.UTILITIES,
 };

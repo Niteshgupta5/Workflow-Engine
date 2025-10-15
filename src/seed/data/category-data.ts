@@ -16,4 +16,9 @@ export const NODE_CATEGORIES = [
     name: NodeCategoryType.FLOW_CONTROL,
     description: "Flow control nodes like conditional, loop, and switch",
   },
+  {
+    id: "00000000-0000-0000-0000-000000000004",
+    name: NodeCategoryType.UTILITIES,
+    description: "Utility nodes provide control and data manipulation within the workflow.",
+  },
 ];

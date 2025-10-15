@@ -93,16 +93,16 @@ export interface TimestampRule {
   operation?: TimestampOperation;
 }
 
-export interface CodeBlockRule {
-  language: CodeBlockLanguage;
+export interface FormulaRule {
   expression: string;
 }
+
 export interface TransformationRuleMap {
   [NodeType.MAP]: { map: MapRule[] };
   [NodeType.RENAME]: RenameRule;
   [NodeType.REMOVE]: RemoveRule;
   [NodeType.FILTER]: FilterRule;
-  [NodeType.CODE_BLOCK]: CodeBlockRule;
+  [NodeType.FORMULA]: FormulaRule;
   [NodeType.CONVERT_TYPE]: ConvertTypeRule;
   [NodeType.MERGE]: MergeRule;
   [NodeType.SPLIT]: SplitRule;
@@ -120,7 +120,7 @@ export type DataTransformationRuleConfig =
   | RenameRule
   | RemoveRule
   | FilterRule
-  | CodeBlockRule
+  | FormulaRule
   | ConvertTypeRule
   | MergeRule
   | SplitRule

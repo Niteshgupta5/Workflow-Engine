@@ -3,3 +3,4 @@ export * from "./conditional";
 export * from "./loop";
 export * from "./switch";
 export * from "./data-transform";
+export * from "./utilities";

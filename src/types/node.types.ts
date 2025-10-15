@@ -3,6 +3,7 @@ import { NodeEdgesCondition, NodeType, SwitchCaseCondition } from "./enums";
 import { DataTransformationRuleConfig, TransformationRuleMap } from "./data-transform.types";
 import { SendHttpRequest, SendEmail, UpdateDatabase } from "./action.types";
 import { ConditionalConfig, LoopConfig, SwitchConfig } from "./flow-control.types";
+import { CodeBlockRule } from "./utilities.type";
 
 export interface CreateNodeRecord {
   workflow_id: string;
@@ -56,6 +57,9 @@ export interface NodeConfigurationMap extends Partial<TransformationRuleMap> {
   [NodeType.CONDITIONAL]?: { conditions: ConditionalConfig[] };
   [NodeType.LOOP]?: LoopConfig;
   [NodeType.SWITCH]?: { switch_cases: SwitchConfig[] };
+
+  // Utilities
+  [NodeType.CODE_BLOCK]?: CodeBlockRule;
 }
 
 export type NodeConfiguration =
@@ -65,4 +69,5 @@ export type NodeConfiguration =
   | { conditions: ConditionalConfig[] }
   | { switch_cases: SwitchConfig[] }
   | LoopConfig
-  | DataTransformationRuleConfig;
+  | DataTransformationRuleConfig
+  | CodeBlockRule;

@@ -1,7 +1,6 @@
 import _ from "lodash";
 import {
   AggregateRule,
-  CodeBlockRule,
   ConcatRule,
   ConvertTypeRule,
   CopyRule,
@@ -21,8 +20,9 @@ import {
   TimeUnit,
   TransformationRuleMap,
   NodeType,
+  FormulaRule,
 } from "../../../types";
-import { evaluateCondition, executeCodeBlock, resolveTemplate } from "../../../utils";
+import { evaluateCondition, resolveTemplate } from "../../../utils";
 import {
   aggregate,
   convertTypes,
@@ -88,26 +88,6 @@ export const transformationHandlers: {
     }
   },
 
-  [NodeType.CODE_BLOCK]: async (data, rules: CodeBlockRule, context) => {
-    const { expression, language } = rules;
-    const codeToExecute = expression;
-
-    if (!codeToExecute) {
-      throw new Error("No code or expression provided");
-    }
-
-    const execContext = {
-      ...context,
-      data,
-      // input: data, // Here data is prev output
-      _,
-    };
-    const resolvedCode = resolveTemplate(codeToExecute, execContext, true);
-    const result = await executeCodeBlock(resolvedCode, language);
-
-    return result;
-  },
-
   [NodeType.CONVERT_TYPE]: async (data, rules: ConvertTypeRule, context) => {
     const { field, toType } = rules;
 
@@ -169,6 +149,14 @@ export const transformationHandlers: {
       return output;
     }
 
+    return result;
+  },
+
+  [NodeType.FORMULA]: async (data, rules: FormulaRule, context) => {
+    const { expression } = rules;
+    const resolvedExpression = resolveTemplate(expression, context, true);
+
+    const result = new Function(`return (${resolvedExpression});`)();
     return result;
   },
 

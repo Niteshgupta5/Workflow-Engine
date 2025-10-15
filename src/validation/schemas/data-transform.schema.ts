@@ -11,6 +11,7 @@ import {
   DateOperation,
   DateOperationRule,
   FilterRule,
+  FormulaRule,
   GroupRule,
   MapRule,
   MergeRule,
@@ -69,11 +70,8 @@ export const concatRule: ObjectSchema<ConcatRule> = Joi.object({
   separator: Joi.string().optional(),
 });
 
-export const codeBlockRule: ObjectSchema<CodeBlockRule> = Joi.object({
+export const formulaRule: ObjectSchema<FormulaRule> = Joi.object({
   expression: Joi.string().required(),
-  language: Joi.string()
-    .valid(...Object.values(CodeBlockLanguage))
-    .required(),
 });
 
 export const convertTypeRule: ObjectSchema<ConvertTypeRule> = Joi.object({

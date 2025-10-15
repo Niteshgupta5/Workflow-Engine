@@ -4,12 +4,12 @@ import { sendEmailSchema, sendHttpRequest, updateDatabaseSchema } from "./action
 import { conditionSchema, loopConfigurationSchema, switchConfigurationSchema } from "./flow-control.schema";
 import {
   aggregateRule,
-  codeBlockRule,
   concatRule,
   convertTypeRule,
   dateFormatRule,
   dateOperationRule,
   filterRule,
+  formulaRule,
   groupRule,
   mapRule,
   mergeRule,
@@ -18,6 +18,7 @@ import {
   splitRule,
   timestampRule,
 } from "./data-transform.schema";
+import { codeBlockRule } from "./utilities.schema";
 
 export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Joi.alternatives().conditional("type", [
   {
@@ -75,12 +76,12 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
     then: groupRule.required(),
   },
   {
-    is: Joi.valid(NodeType.CONCAT, NodeType.FORMULA),
+    is: NodeType.CONCAT,
     then: concatRule.required(),
   },
   {
-    is: NodeType.CODE_BLOCK,
-    then: codeBlockRule.required(),
+    is: NodeType.FORMULA,
+    then: formulaRule.required(),
   },
   {
     is: NodeType.CONVERT_TYPE,
@@ -105,5 +106,9 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
   {
     is: NodeType.TIMESTAMP,
     then: timestampRule.required(),
+  },
+  {
+    is: NodeType.CODE_BLOCK,
+    then: codeBlockRule.required(),
   },
 ]);
