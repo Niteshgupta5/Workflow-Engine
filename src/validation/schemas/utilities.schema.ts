@@ -1,7 +1,7 @@
 import Joi, { ObjectSchema } from "joi";
-import { CodeBlockLanguage, CodeBlockRule } from "../../types";
+import { CodeBlockLanguage, CodeBlockNodeConfig } from "../../types";
 
-export const codeBlockRule: ObjectSchema<CodeBlockRule> = Joi.object({
+export const codeBlockRule: ObjectSchema<CodeBlockNodeConfig> = Joi.object({
   expression: Joi.string().required(),
   language: Joi.string()
     .valid(...Object.values(CodeBlockLanguage))

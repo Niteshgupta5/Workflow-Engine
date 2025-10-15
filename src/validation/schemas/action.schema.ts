@@ -1,8 +1,8 @@
 import Joi, { ObjectSchema } from "joi";
 import { PATTERNS } from "../../constants";
-import { HttpMethod, SendEmail, SendHttpRequest, UpdateDatabase } from "../../types";
+import { HttpMethod, SendEmailConfig, SendHttpRequestConfig, UpdateDatabaseConfig } from "../../types";
 
-export const sendEmailSchema: { body: ObjectSchema<SendEmail> } = {
+export const sendEmailSchema: { body: ObjectSchema<SendEmailConfig> } = {
   body: Joi.object({
     from: Joi.string().email().required(),
     to: Joi.string().email().required(),
@@ -11,7 +11,7 @@ export const sendEmailSchema: { body: ObjectSchema<SendEmail> } = {
   }),
 };
 
-export const sendHttpRequest: { body: ObjectSchema<SendHttpRequest> } = {
+export const sendHttpRequest: { body: ObjectSchema<SendHttpRequestConfig> } = {
   body: Joi.object({
     url: Joi.string().pattern(PATTERNS.url).required(),
     method: Joi.string()
@@ -21,7 +21,7 @@ export const sendHttpRequest: { body: ObjectSchema<SendHttpRequest> } = {
   }),
 };
 
-export const updateDatabaseSchema: { body: ObjectSchema<UpdateDatabase> } = {
+export const updateDatabaseSchema: { body: ObjectSchema<UpdateDatabaseConfig> } = {
   body: Joi.object({
     table: Joi.string().required(),
     data: Joi.object().required(),

@@ -13,16 +13,16 @@ export const getNestedValue = <T = unknown>(obj: unknown, path: string): T | und
   }, obj) as T | undefined;
 };
 
-export const setNestedValue = (obj: DataObject, path: string, value: unknown): void => {
+export const setNestedValue = <T extends DataObject, V>(obj: T, path: string, value: V): void => {
   if (!path || obj == null) return;
 
   const parts = path.split(".");
   const last = parts.pop();
-
   if (!last) return;
 
   const target = parts.reduce<DataObject>((acc, part) => {
-    if (acc[part] == null || typeof acc[part] !== "object") {
+    const current = acc[part];
+    if (typeof current !== "object" || current === null) {
       acc[part] = {};
     }
     return acc[part] as DataObject;

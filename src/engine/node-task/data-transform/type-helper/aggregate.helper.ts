@@ -2,11 +2,12 @@
 // ARRAY OPERATIONS (using lodash)
 // ============================================================================
 
-import { AggregationOperation, DataObject } from "../../../../types";
+import { JsonObject } from "@prisma/client/runtime/library";
+import { AggregationOperation } from "../../../../types";
 import { getNestedValue } from "./nested-value.helper";
 import _ from "lodash";
 
-export const aggregate = <T extends DataObject>(
+export const aggregate = <T extends JsonObject>(
   data: T[],
   operation: AggregationOperation | string,
   field?: string

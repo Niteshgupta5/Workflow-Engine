@@ -145,7 +145,7 @@ export const executeCodeBlock = async (
 
   try {
     // JS code runs inside Worker for isolation
-    if (language.toLowerCase() === "javascript") {
+    if (language === CodeBlockLanguage.JAVASCRIPT) {
       return await runJsInWorker(code, timeoutMs, startTime);
     }
 

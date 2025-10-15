@@ -8,8 +8,10 @@ export interface IdParameter {
   id: string;
 }
 
-export interface ExecutionResult {
+export interface ExecutionResult extends JsonConfig {
   status: ExecutionStatus;
   nextNodeId: string | null;
   error?: Error;
 }
+
+export type DataObject = Record<string, unknown>;

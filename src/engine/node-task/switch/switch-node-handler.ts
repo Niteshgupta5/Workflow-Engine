@@ -6,14 +6,8 @@ import { evaluateCondition } from "../../../utils";
 /**
  * Handles execution of switch-type nodes
  */
-export async function handleSwitchNode(
-  node: Node,
-  context: Record<string, any>,
-  prevNodeId: string | null = null,
-  groupId: string | null = null
-): Promise<ExecutionResult> {
+export async function handleSwitchNode(node: Node, context: Record<string, any>): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let error: Error | undefined = undefined;
 
   try {
     const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(node.id);
@@ -45,12 +39,14 @@ export async function handleSwitchNode(
       }
     }
 
-    if (!selectedEdge) nodeStatus = ExecutionStatus.FAILED;
+    if (!selectedEdge) throw new Error("Case not matched.");
 
-    return { status: nodeStatus, nextNodeId: selectedEdge?.target ?? null, error };
+    return {
+      status: nodeStatus,
+      nextNodeId: selectedEdge?.target ?? null,
+      matchedCase: selectedEdge?.condition,
+    };
   } catch (err) {
-    error = err as Error;
-    nodeStatus = ExecutionStatus.FAILED;
-    return { status: nodeStatus, nextNodeId: null, error };
+    throw err;
   }
 }

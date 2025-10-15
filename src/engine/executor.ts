@@ -1,5 +1,5 @@
 import { createExecution, getEntryNode, getTriggerById, getWorkflowById, updateExecution } from "../services";
-import { ExecutionStatus, TriggerConfiguration, TriggerType } from "../types";
+import { ExecutionStatus, ExtendedNode, NodeType, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
 
@@ -19,29 +19,45 @@ export async function runWorkflow(
     output: {},
   };
 
+  const executionContext: Record<string, any> = {};
+
   let currentNode = await getEntryNode(workflow.id); // entry node
-  let prevNodeId = null; // To fetch result of previous node if needed
+  let prevNodeId: string | null = null;
+
   while (currentNode) {
     try {
-      const result = await runNode(executionId, currentNode, inputContext, context, prevNodeId);
+      // Type assertion for node with proper config type
+      const typedNode = currentNode as ExtendedNode<NodeType>;
+
+      const result = await runNode(
+        executionId,
+        typedNode,
+        context,
+        executionContext,
+        prevNodeId,
+        null // groupId
+      );
+
+      // Store node result in context
       context.output[currentNode.id] = result.nodeResult;
+
       if (result.error) throw result.error;
+
       prevNodeId = currentNode.id;
       currentNode = result.nextNode;
+
+      // Update execution status only when workflow completes
       await updateExecution(executionId, {
         status: ExecutionStatus.COMPLETED,
         completed_at: new Date(),
         context,
       });
-      if (!currentNode) {
-        console.log(`✅ Execution ${executionId} completed`);
-      }
     } catch (error) {
       await updateExecution(executionId, {
         status: ExecutionStatus.FAILED,
         context,
       });
-      console.log(`✅ Execution ${executionId} failed`);
+      console.log(`❌ Execution ${executionId} failed`);
       throw error;
     }
   }
@@ -49,25 +65,24 @@ export async function runWorkflow(
 
 export async function executeTrigger(
   triggerId: string,
-  inputContext: Object
+  inputContext: Record<string, any>
 ): Promise<{
   status: number;
   executionId: string;
   message?: string;
   error?: string;
 }> {
-  let execution;
   const trigger = await getTriggerById(triggerId);
   const config = trigger.configuration as TriggerConfiguration;
 
-  try {
-    execution = await createExecution({
-      workflow_id: trigger.workflow_id,
-      trigger_id: trigger.id,
-      status: ExecutionStatus.RUNNING,
-      context: { input: inputContext },
-    });
+  let execution = await createExecution({
+    workflow_id: trigger.workflow_id,
+    trigger_id: trigger.id,
+    status: ExecutionStatus.RUNNING,
+    context: { input: inputContext },
+  });
 
+  try {
     switch (trigger.type) {
       case TriggerType.WEBHOOK:
         const webhookConfig = config[TriggerType.WEBHOOK];
@@ -131,14 +146,14 @@ export async function executeTrigger(
       executionId: execution.id,
     };
   } catch (error) {
-    await updateExecution(execution?.id || "", {
+    await updateExecution(execution.id, {
       status: ExecutionStatus.FAILED,
       context: {
         input: inputContext,
       },
       completed_at: new Date(),
     });
-    console.error("Error: In Trigger Execution");
+    console.error("Error: In Trigger Execution", error);
     throw error;
   }
 }

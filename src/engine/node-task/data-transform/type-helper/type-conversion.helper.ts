@@ -2,10 +2,11 @@
 // TYPE CONVERSION
 // ============================================================================
 
-import { ConversionType, DataObject } from "../../../../types";
+import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
+import { ConversionType } from "../../../../types";
 import { getNestedValue, setNestedValue } from "./nested-value.helper";
 
-export const convertTypes = (obj: DataObject, conversions: Record<string, ConversionType>): DataObject => {
+export const convertTypes = (obj: JsonValue, conversions: Record<string, ConversionType>): JsonValue => {
   if (obj == null || typeof obj !== "object") {
     return obj;
   }
@@ -20,14 +21,14 @@ export const convertTypes = (obj: DataObject, conversions: Record<string, Conver
     if (field.includes(".")) {
       setNestedValue(result, field, converted);
     } else {
-      result[field] = converted;
+      (result as JsonObject)[field] = converted as JsonValue;
     }
   }
 
   return result;
 };
 
-export const convertValue = (value: unknown, targetType: ConversionType): unknown => {
+export const convertValue = (value: unknown, targetType: ConversionType) => {
   switch (targetType) {
     case ConversionType.STRING:
       return String(value);
