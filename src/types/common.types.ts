@@ -13,3 +13,10 @@ export interface ExecutionResult {
   nextNodeId: string | null;
   error?: Error;
 }
+
+export interface EmailOptions {
+  to: string | string[];
+  subject: string;
+  message: string;
+  from?: string;
+}

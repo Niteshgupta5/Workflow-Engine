@@ -21,7 +21,6 @@ export async function handleConditionalNode(
     throw new Error(`Conditional node ${node.name} configuration not found`);
   }
   const conditions = (config["conditions"] as ConditionalConfig[] | undefined) ?? [];
-
   for (const condition of conditions) {
     try {
       const result = evaluateCondition(condition.expression, context);

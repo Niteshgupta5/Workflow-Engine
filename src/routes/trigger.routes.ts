@@ -58,3 +58,15 @@ triggerRouter.delete("/:id", validateRequest<IdParameter>(deleteTriggerSchema), 
     res.status(500).json({ error: err.message });
   }
 });
+
+triggerRouter.post("/:triggerId/invitation/:inviteStatus", async (req, res) => {
+  try {
+    const { triggerId, inviteStatus } = req.params as any;
+    const inputContext = req.body || {};
+    inputContext["invitation_status"] = inviteStatus;
+    const { status, ...rest } = await executeTrigger(triggerId, inputContext);
+    res.json(rest);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});

@@ -11,6 +11,7 @@ export interface SendHttpRequest {
   method: HttpMethod;
   url: string;
   body?: Object;
+  headers?: Object;
 }
 
 export interface UpdateDatabase {

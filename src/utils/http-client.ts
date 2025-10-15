@@ -1,11 +1,12 @@
 import axios, { Method } from "axios";
 
-export async function httpRequest<T = any>(method: Method, endpoint: string, data?: any): Promise<T> {
+export async function httpRequest<T = any>(method: Method, endpoint: string, data?: any, headers?: any): Promise<T> {
   try {
     const response = await axios({
       method,
       url: `${endpoint}`,
       data,
+      headers,
     });
     return response.data;
   } catch (error: any) {

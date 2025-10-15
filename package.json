@@ -26,6 +26,7 @@
     "jsep": "^1.4.0",
     "lodash": "^4.17.21",
     "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.9",
     "nodemon": "^3.1.10",
     "prisma": "^6.16.2",
     "ts-node": "^10.9.2"
@@ -35,6 +36,7 @@
     "@types/express": "^5.0.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.5.2",
+    "@types/nodemailer": "^7.0.2",
     "typescript": "^5.9.2"
   }
 }

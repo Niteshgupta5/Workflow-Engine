@@ -18,21 +18,23 @@ import { isValid, parse, parseISO } from "date-fns";
 const { isNil, isEmpty, isObjectLike, isString, isDate, isNumber, trim } = pkg;
 
 export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
-  let variableValue = undefined;
+  let matchedValue: Record<string, any>[] = [];
   try {
-    let value: any = context;
     const parsedExpression = expression.replace(/{{\s*\$\.([\w.]+)\s*}}/g, (_, key) => {
+      let value: any = context;
+      let keyName: string = "";
       const parts = key.split(".");
       for (const part of parts) {
         value = value?.[part];
+        keyName = part;
       }
-      variableValue = value;
+      matchedValue.push({ key: keyName, value });
       return JSON.stringify(value);
     });
     console.log(`Resolved Expression ${expression} =>`, parsedExpression);
 
     const fn = new Function(`return (${parsedExpression});`);
-    return { status: Boolean(fn()), value: variableValue };
+    return { status: Boolean(fn()), value: matchedValue };
   } catch (error) {
     console.error("Condition evaluation failed:", error);
     throw error;

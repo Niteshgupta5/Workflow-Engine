@@ -4,8 +4,8 @@ import { HttpMethod, SendEmail, SendHttpRequest, UpdateDatabase } from "../../ty
 
 export const sendEmailSchema: { body: ObjectSchema<SendEmail> } = {
   body: Joi.object({
-    from: Joi.string().email().required(),
-    to: Joi.string().email().required(),
+    from: Joi.string().required(),
+    to: Joi.string().required(),
     subject: Joi.string().allow("").required(),
     message: Joi.string().required(),
   }),
@@ -18,6 +18,7 @@ export const sendHttpRequest: { body: ObjectSchema<SendHttpRequest> } = {
       .valid(...Object.values(HttpMethod))
       .required(),
     body: Joi.object().optional(),
+    headers: Joi.object().optional(),
   }),
 };
 
