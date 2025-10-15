@@ -1,22 +1,14 @@
 import type { Node } from "@prisma/client";
 import { getNodeById, logNodeExecution, updateNodeExecutionLog } from "../services";
-import { ExecutionLogEventType, ExecutionResult, ExecutionStatus, NodeCategoryType, NodeType } from "../types";
-import {
-  handleActionNode,
-  handleConditionalNode,
-  handleDataTransformNode,
-  handleSwitchNode,
-  handleUtilitiesNode,
-} from "./node-task";
-import { handleLoopNode } from "./node-task";
-import { NODE_CATEGORY_MAPPER } from "../constants";
+import { ExecutionLogEventType, ExecutionStatus, ExtendedNode, NodeConfig, NodeConfigMap, NodeType } from "../types";
+import { NodeExecutorFn, taskExecutors } from "./taskExecutor";
 
 /**
  * Main node runner
  */
-export const runNode = async (
+export const runNode = async <T extends NodeType>(
   executionId: string,
-  node: Node,
+  node: ExtendedNode<T>,
   context: Record<string, any>,
   executionContext: Record<string, any>,
   prevNodeId: string | null = null,
@@ -24,7 +16,7 @@ export const runNode = async (
 ): Promise<{
   nodeResult: Record<string, any>;
   nextNode: Node | null;
-  error?: Error | undefined;
+  error?: Error;
 }> => {
   let nextNodeId: string | null = null;
   let nodeStatus: ExecutionStatus = ExecutionStatus.COMPLETED;
@@ -41,53 +33,16 @@ export const runNode = async (
       started_at: new Date(),
     });
 
-    const category = NODE_CATEGORY_MAPPER[node.type as NodeType];
+    // Get the executor function
+    const nodeBlockHandler = taskExecutors[node.type] as NodeExecutorFn<T>;
 
-    switch (category) {
-      case NodeCategoryType.ACTION: {
-        const result = await handleActionNode(node, context, prevNodeId, groupId);
-        nodeStatus = result.status;
-        nextNodeId = result.nextNodeId;
-        if (result.error) throw result.error;
-        break;
-      }
-
-      case NodeCategoryType.FLOW_CONTROL: {
-        let result: ExecutionResult = { status: nodeStatus, nextNodeId };
-        if (node.type === NodeType.CONDITIONAL) {
-          result = await handleConditionalNode(node, context, prevNodeId, groupId);
-        } else if (node.type === NodeType.LOOP) {
-          result = await handleLoopNode(node, executionId, context, executionContext, prevNodeId);
-        } else if (node.type === NodeType.SWITCH) {
-          result = await handleSwitchNode(node, context, prevNodeId, groupId);
-        }
-        nodeStatus = result.status;
-        nextNodeId = result.nextNodeId;
-        if (result.error) throw result.error;
-        break;
-      }
-
-      case NodeCategoryType.DATA_TRANSFORM: {
-        const result = await handleDataTransformNode(node, context, prevNodeId, groupId);
-        nodeStatus = result.status;
-        nextNodeId = result.nextNodeId;
-        if (result.error) throw result.error;
-        break;
-      }
-
-      case NodeCategoryType.UTILITIES: {
-        const result = await handleUtilitiesNode(node, context, prevNodeId, groupId);
-        nodeStatus = result.status;
-        nextNodeId = result.nextNodeId;
-        if (result.error) throw result.error;
-        break;
-      }
-
-      default:
-        console.warn(`Unknown node type: ${node.type}`);
-        nodeStatus = ExecutionStatus.FAILED;
-        break;
-    }
+    // Execute the node
+    const nodeResult = await nodeBlockHandler({
+      node,
+      context,
+      executionContext,
+      groupId,
+    });
 
     await updateNodeExecutionLog(nodeLog.id, {
       status: nodeStatus,
@@ -99,6 +54,7 @@ export const runNode = async (
       nodeResult: {
         name: node.name,
         status: nodeStatus,
+        ...nodeResult,
       },
       nextNode: nextNodeId ? await getNodeById(nextNodeId) : null,
     };
@@ -113,7 +69,7 @@ export const runNode = async (
     return {
       nodeResult: {
         name: node.name,
-        status: nodeStatus,
+        status: ExecutionStatus.FAILED,
       },
       nextNode: null,
       error,

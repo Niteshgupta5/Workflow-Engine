@@ -1,24 +1,24 @@
 import Joi, { ObjectSchema } from "joi";
 import {
-  AggregateRule,
+  AggregateNodeConfig,
   AggregationOperation,
-  ConcatRule,
+  ConcatNodeConfig,
   ConversionType,
-  ConvertTypeRule,
-  DateFormatRule,
+  ConvertTypeNodeConfig,
+  DateFormatNodeConfig,
   DateOperation,
-  DateOperationRule,
-  FilterRule,
-  FormulaRule,
-  GroupRule,
+  DateOperationNodeConfig,
+  FilterNodeConfig,
+  FormulaNodeConfig,
+  GroupNodeConfig,
   MapRule,
-  MergeRule,
+  MergeNodeConfig,
   MergeStrategy,
-  RemoveRule,
-  RenameRule,
-  SplitRule,
+  RemoveNodeConfig,
+  RenameNodeConfig,
+  SplitNodeConfig,
+  TimestampNodeConfig,
   TimestampOperation,
-  TimestampRule,
   TimeUnit,
 } from "../../types";
 
@@ -30,20 +30,20 @@ export const mapRule: ObjectSchema<MapRule> = Joi.object({
     .optional(),
 });
 
-export const renameRule: ObjectSchema<RenameRule> = Joi.object({
+export const renameRule: ObjectSchema<RenameNodeConfig> = Joi.object({
   from: Joi.string().required(),
   to: Joi.string().required(),
 });
 
-export const removeRule: ObjectSchema<RemoveRule> = Joi.object({
+export const removeRule: ObjectSchema<RemoveNodeConfig> = Joi.object({
   fields: Joi.array().items(Joi.string()).min(1).required(),
 });
 
-export const filterRule: ObjectSchema<FilterRule> = Joi.object({
+export const filterRule: ObjectSchema<FilterNodeConfig> = Joi.object({
   condition: Joi.string().required(),
 });
 
-export const aggregateRule: ObjectSchema<AggregateRule> = Joi.object({
+export const aggregateRule: ObjectSchema<AggregateNodeConfig> = Joi.object({
   groupBy: Joi.array().items(Joi.string()).required(),
   operations: Joi.array()
     .items(
@@ -58,33 +58,33 @@ export const aggregateRule: ObjectSchema<AggregateRule> = Joi.object({
     .required(),
 });
 
-export const groupRule: ObjectSchema<GroupRule> = Joi.object({
+export const groupRule: ObjectSchema<GroupNodeConfig> = Joi.object({
   groupBy: Joi.array().items(Joi.string()).min(1).required(),
 });
 
-export const concatRule: ObjectSchema<ConcatRule> = Joi.object({
+export const concatRule: ObjectSchema<ConcatNodeConfig> = Joi.object({
   sources: Joi.array().items(Joi.string()).min(2).required(),
   target: Joi.string().required(),
   separator: Joi.string().optional(),
 });
 
-export const formulaRule: ObjectSchema<FormulaRule> = Joi.object({
+export const formulaRule: ObjectSchema<FormulaNodeConfig> = Joi.object({
   expression: Joi.string().required(),
 });
 
-export const convertTypeRule: ObjectSchema<ConvertTypeRule> = Joi.object({
+export const convertTypeRule: ObjectSchema<ConvertTypeNodeConfig> = Joi.object({
   field: Joi.string().required(),
   toType: Joi.string()
     .valid(...Object.values(ConversionType))
     .required(),
 });
 
-export const mergeRule: ObjectSchema<MergeRule> = Joi.object({
+export const mergeRule: ObjectSchema<MergeNodeConfig> = Joi.object({
   sources: Joi.array().items(Joi.string()).min(2).required(),
   target: Joi.string().required(),
 });
 
-export const splitRule: ObjectSchema<SplitRule> = Joi.object({
+export const splitRule: ObjectSchema<SplitNodeConfig> = Joi.object({
   field: Joi.string().required(),
   separator: Joi.string().required(),
   target: Joi.string().required(),
@@ -92,14 +92,14 @@ export const splitRule: ObjectSchema<SplitRule> = Joi.object({
   trim: Joi.boolean().optional(),
 });
 
-export const dateFormatRule: ObjectSchema<DateFormatRule> = Joi.object({
+export const dateFormatRule: ObjectSchema<DateFormatNodeConfig> = Joi.object({
   field: Joi.string().required(),
   format: Joi.string().required(),
   target: Joi.string().optional(),
   timezone: Joi.string().optional(),
 });
 
-export const dateOperationRule: ObjectSchema<DateOperationRule> = Joi.object({
+export const dateOperationRule: ObjectSchema<DateOperationNodeConfig> = Joi.object({
   field: Joi.string().required(),
   operation: Joi.string()
     .valid(...Object.values(DateOperation))
@@ -111,7 +111,7 @@ export const dateOperationRule: ObjectSchema<DateOperationRule> = Joi.object({
   target: Joi.string().optional(),
 });
 
-export const timestampRule: ObjectSchema<TimestampRule> = Joi.object({
+export const timestampRule: ObjectSchema<TimestampNodeConfig> = Joi.object({
   field: Joi.string().required(),
   target: Joi.string().required(),
   unit: Joi.string()

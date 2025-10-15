@@ -6,15 +6,16 @@ import { add, Duration, format, isDate, sub } from "date-fns";
 import { DataObject, DateFormat, DateOperation, FormatType, TimestampOperation, TimeUnit } from "../../../../types";
 import { getNestedValue, setNestedValue } from "./nested-value.helper";
 import { parseDateValue } from "../../../../utils";
+import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
 
 export const performDateOperation = (
-  obj: DataObject,
+  obj: JsonValue,
   field: string | undefined,
   operation: DateOperation | string,
   value: number,
   unit: TimeUnit | string,
   target?: string
-): DataObject | string => {
+): JsonValue | string => {
   const dateValue = field ? getNestedValue(obj, field) : obj;
   let date: Date;
 
@@ -41,7 +42,7 @@ export const performDateOperation = (
     return resultValue;
   }
 
-  const result = { ...obj };
+  const result = { ...(obj as JsonObject) };
   const targetField = target || field;
 
   if (targetField) {
@@ -56,7 +57,7 @@ export const performDateOperation = (
 };
 
 export const formatDateField = (
-  obj: DataObject,
+  obj: JsonValue,
   field: string | undefined,
   formatStr: FormatType | string,
   target?: string,
@@ -106,7 +107,7 @@ export const formatDateField = (
     return formatted;
   }
 
-  const result = { ...obj };
+  const result = { ...(obj as JsonObject) };
   const targetField = target || field;
 
   if (targetField) {
@@ -121,12 +122,12 @@ export const formatDateField = (
 };
 
 export const handleTimestamp = (
-  obj: DataObject,
+  obj: JsonValue,
   field: string | undefined,
   operation: TimestampOperation,
   unit: TimeUnit,
   target?: string
-): DataObject | number | string => {
+): JsonValue | number | string => {
   const value = field ? getNestedValue(obj, field) : obj;
 
   let result: number | string;
@@ -145,7 +146,7 @@ export const handleTimestamp = (
     return result;
   }
 
-  const output = { ...obj };
+  const output = { ...(obj as JsonObject) };
   const targetField = target || field;
 
   if (targetField) {

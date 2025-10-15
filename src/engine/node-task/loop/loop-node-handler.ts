@@ -1,18 +1,25 @@
 import { Node } from "@prisma/client";
-import { ExecutionResult, ExecutionStatus, LoopConfig, LoopType, NodeEdgesCondition } from "../../../types";
+import {
+  ExecutionResult,
+  ExecutionStatus,
+  ExtendedNode,
+  LoopConfig,
+  LoopType,
+  NodeEdgesCondition,
+  NodeType,
+} from "../../../types";
 import { getNextNodeAfterLoop, getNextNodeId } from "../../../services";
 import { evaluateCondition, resolveTemplate } from "../../../utils";
 import { executeSubgraph } from "./subgraph.executor";
 
-export async function handleLoopNode(
-  node: Node,
+export async function handleLoopNode<T extends NodeType>(
+  node: ExtendedNode<T>,
   executionId: string,
   context: Record<string, any>,
   executionContext: Record<string, any>,
   prevNodeId: string | null = null
 ): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let error: Error | undefined = undefined;
   console.log("=====Loop Start=====");
 
   try {
@@ -37,16 +44,15 @@ export async function handleLoopNode(
     }
     console.log("=====Loop End=====");
   } catch (err) {
-    error = err as Error;
-    nodeStatus = ExecutionStatus.FAILED;
+    throw err;
   }
 
   const nextNodeId = await getNextNodeAfterLoop(node.id);
-  return { status: nodeStatus, nextNodeId, error };
+  return { status: nodeStatus, nextNodeId };
 }
 
-async function handleFixedLoop(
-  loopNode: Node,
+async function handleFixedLoop<T extends NodeType>(
+  loopNode: ExtendedNode<T>,
   configs: LoopConfig,
   context: Record<string, any>,
   executionContext: Record<string, any>,
@@ -72,8 +78,8 @@ async function handleFixedLoop(
   return nodeStatus;
 }
 
-async function handleConditionalLoop(
-  loopNode: Node,
+async function handleConditionalLoop<T extends NodeType>(
+  loopNode: ExtendedNode<T>,
   configs: LoopConfig,
   context: Record<string, any>,
   executionContext: Record<string, any>,
@@ -110,8 +116,8 @@ async function handleConditionalLoop(
   return nodeStatus;
 }
 
-async function handleForEachLoop(
-  loopNode: Node,
+async function handleForEachLoop<T extends NodeType>(
+  loopNode: ExtendedNode<T>,
   configs: LoopConfig,
   context: Record<string, any>,
   executionContext: Record<string, any>,

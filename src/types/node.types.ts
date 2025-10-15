@@ -1,9 +1,30 @@
 import { Node, Edge } from "@prisma/client";
 import { NodeEdgesCondition, NodeType, SwitchCaseCondition } from "./enums";
-import { DataTransformationRuleConfig, TransformationRuleMap } from "./data-transform.types";
-import { SendHttpRequest, SendEmail, UpdateDatabase } from "./action.types";
-import { ConditionalConfig, LoopConfig, SwitchConfig } from "./flow-control.types";
-import { CodeBlockRule } from "./utilities.type";
+import {
+  AggregateNodeConfig,
+  CodeBlockNodeConfig,
+  ConcatNodeConfig,
+  ConditionalConfig,
+  ConvertTypeNodeConfig,
+  CopyNodeConfig,
+  DateFormatNodeConfig,
+  DateOperationNodeConfig,
+  FilterNodeConfig,
+  GroupNodeConfig,
+  LoopConfig,
+  MappingNodeConfig,
+  MergeNodeConfig,
+  NodeConfig,
+  NodeConfigMap,
+  RemoveNodeConfig,
+  RenameNodeConfig,
+  SendEmailConfig,
+  SendHttpRequestConfig,
+  SplitNodeConfig,
+  SwitchConfig,
+  TimestampNodeConfig,
+  UpdateDatabaseConfig,
+} from "./node-config.types";
 
 export interface CreateNodeRecord {
   workflow_id: string;
@@ -48,26 +69,30 @@ export interface GetNodeEdgeWithRelation extends Edge {
   targetNode?: Node;
 }
 
-export interface NodeConfigurationMap extends Partial<TransformationRuleMap> {
-  [NodeType.SEND_EMAIL]?: SendEmail;
-  [NodeType.SEND_HTTP_REQUEST]?: SendHttpRequest;
-  [NodeType.UPDATE_DATABASE]?: UpdateDatabase;
-
-  // Flow Control
-  [NodeType.CONDITIONAL]?: { conditions: ConditionalConfig[] };
-  [NodeType.LOOP]?: LoopConfig;
-  [NodeType.SWITCH]?: { switch_cases: SwitchConfig[] };
-
-  // Utilities
-  [NodeType.CODE_BLOCK]?: CodeBlockRule;
-}
-
 export type NodeConfiguration =
-  | SendEmail
-  | SendHttpRequest
-  | UpdateDatabase
+  | SendEmailConfig
+  | SendHttpRequestConfig
+  | UpdateDatabaseConfig
+  | LoopConfig
   | { conditions: ConditionalConfig[] }
   | { switch_cases: SwitchConfig[] }
-  | LoopConfig
-  | DataTransformationRuleConfig
-  | CodeBlockRule;
+  | MappingNodeConfig
+  | RenameNodeConfig
+  | RemoveNodeConfig
+  | FilterNodeConfig
+  | ConvertTypeNodeConfig
+  | MergeNodeConfig
+  | SplitNodeConfig
+  | DateFormatNodeConfig
+  | DateOperationNodeConfig
+  | TimestampNodeConfig
+  | CopyNodeConfig
+  | AggregateNodeConfig
+  | GroupNodeConfig
+  | ConcatNodeConfig
+  | CodeBlockNodeConfig;
+
+export type ExtendedNode<T extends NodeType> = Node & {
+  type: T;
+  config: T extends keyof NodeConfigMap ? NodeConfig<T> : never;
+};

@@ -5,44 +5,59 @@ import { evaluateCondition } from "../../../utils";
 
 /**
  * Handles execution of conditional-type nodes
+ * Combines multiple conditions into a single expression
+ * and evaluates them only once.
  */
 export async function handleConditionalNode(
   node: Node,
   context: Record<string, any>,
-  prevNodeId: string | null = null,
   groupId: string | null = null
 ): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let error: Error | undefined = undefined;
-  let pass = true;
 
   const config = node.config;
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     throw new Error(`Conditional node ${node.name} configuration not found`);
   }
+
   const conditions = (config["conditions"] as ConditionalConfig[] | undefined) ?? [];
 
-  for (const condition of conditions) {
-    try {
-      const result = evaluateCondition(condition.expression, context);
-      context.output[node.id] = {
-        expression: condition.expression,
-        success: result.status,
-        matchedValue: result.value,
-      };
+  if (conditions.length === 0) {
+    throw new Error(`Conditional node ${node.name} has no conditions defined`);
+  }
 
-      pass = result.status;
-    } catch (err) {
-      pass = false;
-      nodeStatus = ExecutionStatus.FAILED;
-      error = err as Error;
-      break;
-    }
+  // Combine all expressions using their operators (default AND)
+  const combinedExpression = conditions
+    .map((cond) => cond.expression)
+    .reduce((acc, expr, idx) => {
+      if (idx === 0) return expr;
+      const operator = conditions[idx].operator ?? "&&"; // default AND
+      return `(${acc}) ${operator} (${expr})`;
+    }, "");
+
+  let pass = true;
+
+  try {
+    // Evaluate combined expression once
+    const result = evaluateCondition(combinedExpression, context);
+
+    // Store output for this node
+    context.output[node.id] = {
+      expression: combinedExpression,
+      success: result.status,
+      matchedValue: result.value,
+    };
+
+    pass = result.status;
+  } catch (err) {
+    pass = false;
+    nodeStatus = ExecutionStatus.FAILED;
+    throw err;
   }
 
   const nextNodeId = pass
     ? await getNextNodeId(node.id, NodeEdgesCondition.ON_TRUE, groupId)
     : await getNextNodeId(node.id, NodeEdgesCondition.ON_FALSE, groupId);
 
-  return { status: nodeStatus, nextNodeId, error };
+  return { status: nodeStatus, nextNodeId };
 }

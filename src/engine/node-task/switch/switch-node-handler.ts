@@ -6,14 +6,8 @@ import { evaluateCondition } from "../../../utils";
 /**
  * Handles execution of switch-type nodes
  */
-export async function handleSwitchNode(
-  node: Node,
-  context: Record<string, any>,
-  prevNodeId: string | null = null,
-  groupId: string | null = null
-): Promise<ExecutionResult> {
+export async function handleSwitchNode(node: Node, context: Record<string, any>): Promise<ExecutionResult> {
   let nodeStatus = ExecutionStatus.COMPLETED;
-  let error: Error | undefined = undefined;
 
   try {
     const outgoingEdges = await getAllOutgoingEdgesForSwitchNode(node.id);
@@ -30,6 +24,7 @@ export async function handleSwitchNode(
         continue;
       }
       if (edge.expression) {
+        console.log(`Evaluate ${edge.condition}`);
         const result = evaluateCondition(edge.expression, context);
         context.output[node.id] = {
           ...context.output[node.id],
@@ -38,19 +33,21 @@ export async function handleSwitchNode(
           matchedValue: result.value,
         };
         if (result.status) {
-          console.log(`🔍 Evaluating expression: ${edge.expression} for node: ${node.name}`);
+          console.log(`🔍 Evaluation Verified: ${edge.expression} for node: ${node.name}`);
           selectedEdge = edge;
           break;
         }
       }
     }
 
-    if (!selectedEdge) nodeStatus = ExecutionStatus.FAILED;
+    if (!selectedEdge) throw new Error("Case not matched.");
 
-    return { status: nodeStatus, nextNodeId: selectedEdge?.target ?? null, error };
+    return {
+      status: nodeStatus,
+      nextNodeId: selectedEdge?.target ?? null,
+      matchedCase: selectedEdge?.condition,
+    };
   } catch (err) {
-    error = err as Error;
-    nodeStatus = ExecutionStatus.FAILED;
-    return { status: nodeStatus, nextNodeId: null, error };
+    throw err;
   }
 }
