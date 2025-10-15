@@ -2,12 +2,10 @@ import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
 import {
   HttpMethod,
   NodeType,
-  NodeConfig,
   NodeResponse,
   SendEmailResponse,
   SendHttpRequestResponse,
   UpdateDatabaseResponse,
-  NodeConfigMap,
   MapResponse,
   RenameResponse,
   RemoveResponse,
@@ -25,6 +23,10 @@ import {
   GroupResponse,
   ConcatResponse,
   CodeBlockResponse,
+  ExtendedNode,
+  ConditionalResponse,
+  LoopResponse,
+  SwitchResponse,
 } from "../types";
 import { evaluateCondition, executeCodeBlock, httpRequest, resolveTemplate } from "../utils";
 import {
@@ -42,15 +44,11 @@ import {
   renameKeys,
   setNestedValue,
 } from "./node-task";
-import { Node } from "@prisma/client";
 import _ from "lodash";
 
 // Generic input type with properly constrained node.config
 export type NodeExecutorInput<T extends NodeType> = {
-  node: Node & {
-    type: T;
-    config: T extends keyof NodeConfigMap ? NodeConfig<T> : never;
-  };
+  node: ExtendedNode<T>;
   context: DataObject;
   executionContext: DataObject;
   groupId: string | null;
@@ -63,7 +61,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // =============================
   // Action Nodes
   // =============================
-  [NodeType.SEND_EMAIL]: async ({ node, context }) => {
+  [NodeType.SEND_EMAIL]: async ({ node, context }): Promise<SendEmailResponse> => {
     const { from, to, subject, message } = node.config;
     const resolvedMessage = resolveTemplate(message, context);
 
@@ -78,7 +76,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     return response;
   },
 
-  [NodeType.SEND_HTTP_REQUEST]: async ({ node, context }) => {
+  [NodeType.SEND_HTTP_REQUEST]: async ({ node, context }): Promise<SendHttpRequestResponse> => {
     const { url, method = HttpMethod.GET, body = {} } = node.config;
     const resolvedBody = resolveTemplate(body, context);
     const res = await httpRequest(method, url, resolvedBody);
@@ -93,7 +91,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     return response;
   },
 
-  [NodeType.UPDATE_DATABASE]: async ({ node }) => {
+  [NodeType.UPDATE_DATABASE]: async ({ node }): Promise<UpdateDatabaseResponse> => {
     const { table, data } = node.config;
     const response: UpdateDatabaseResponse = {
       table,
@@ -107,11 +105,11 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // =============================
   // Flow Control Nodes
   // =============================
-  [NodeType.CONDITIONAL]: async ({ context, node, groupId }) => {
+  [NodeType.CONDITIONAL]: async ({ context, node, groupId }): Promise<ConditionalResponse> => {
     return await handleConditionalNode(node, context, groupId);
   },
 
-  [NodeType.LOOP]: async ({ context, executionContext, node }) => {
+  [NodeType.LOOP]: async ({ context, executionContext, node }): Promise<LoopResponse> => {
     await handleLoopNode(node, "", context, executionContext);
     return {
       iteration_index: 0,
@@ -120,7 +118,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     };
   },
 
-  [NodeType.SWITCH]: async ({ node, context }) => {
+  [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
     const result = await handleSwitchNode(node, context);
     return {
       matched_case: result.matchedCase,
