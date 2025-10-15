@@ -2,8 +2,6 @@ import Joi, { ObjectSchema } from "joi";
 import {
   AggregateRule,
   AggregationOperation,
-  CodeBlockLanguage,
-  CodeBlockRule,
   ConcatRule,
   ConversionType,
   ConvertTypeRule,
