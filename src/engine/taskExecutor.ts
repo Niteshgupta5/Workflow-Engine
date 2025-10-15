@@ -27,8 +27,9 @@ import {
   ConditionalResponse,
   LoopResponse,
   SwitchResponse,
+  EmailOptions,
 } from "../types";
-import { evaluateCondition, executeCodeBlock, httpRequest, resolveTemplate } from "../utils";
+import { evaluateCondition, executeCodeBlock, httpRequest, resolveTemplate, sendEmail } from "../utils";
 import {
   aggregate,
   convertTypes,
@@ -63,13 +64,12 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // =============================
   [NodeType.SEND_EMAIL]: async ({ node, context }): Promise<SendEmailResponse> => {
     const { from, to, subject, message } = node.config;
-    const resolvedMessage = resolveTemplate(message, context);
+    const resolvedBody: EmailOptions = resolveTemplate({ from, to, subject, message }, context);
 
+    const emailResponse = await sendEmail(resolvedBody);
     const response: SendEmailResponse = {
-      from,
-      to,
-      subject,
-      message: resolvedMessage,
+      ...resolvedBody,
+      message: emailResponse.message,
       status: "sent",
       timestamp: new Date().toISOString(),
     };
@@ -77,9 +77,10 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.SEND_HTTP_REQUEST]: async ({ node, context }): Promise<SendHttpRequestResponse> => {
-    const { url, method = HttpMethod.GET, body = {} } = node.config;
+    const { url, method = HttpMethod.GET, body = {}, headers = {} } = node.config;
     const resolvedBody = resolveTemplate(body, context);
-    const res = await httpRequest(method, url, resolvedBody);
+    const res = await httpRequest(method, url, resolvedBody, headers);
+    console.log("=====>res", res);
 
     const response: SendHttpRequestResponse = {
       method,

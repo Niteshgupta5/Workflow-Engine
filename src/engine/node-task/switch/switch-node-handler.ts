@@ -24,6 +24,7 @@ export async function handleSwitchNode(node: Node, context: Record<string, any>)
         continue;
       }
       if (edge.expression) {
+        console.log(`Evaluate ${edge.condition}`);
         const result = evaluateCondition(edge.expression, context);
         context.output[node.id] = {
           ...context.output[node.id],
@@ -32,7 +33,7 @@ export async function handleSwitchNode(node: Node, context: Record<string, any>)
           matchedValue: result.value,
         };
         if (result.status) {
-          console.log(`🔍 Evaluating expression: ${edge.expression} for node: ${node.name}`);
+          console.log(`🔍 Evaluation Verified: ${edge.expression} for node: ${node.name}`);
           selectedEdge = edge;
           break;
         }

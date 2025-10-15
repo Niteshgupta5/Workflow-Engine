@@ -4,8 +4,8 @@ import { HttpMethod, SendEmailConfig, SendHttpRequestConfig, UpdateDatabaseConfi
 
 export const sendEmailSchema: { body: ObjectSchema<SendEmailConfig> } = {
   body: Joi.object({
-    from: Joi.string().email().required(),
-    to: Joi.string().email().required(),
+    from: Joi.string().required(),
+    to: Joi.string().required(),
     subject: Joi.string().allow("").required(),
     message: Joi.string().required(),
   }),
@@ -18,6 +18,7 @@ export const sendHttpRequest: { body: ObjectSchema<SendHttpRequestConfig> } = {
       .valid(...Object.values(HttpMethod))
       .required(),
     body: Joi.object().optional(),
+    headers: Joi.object().optional(),
   }),
 };
 

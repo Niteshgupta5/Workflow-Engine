@@ -28,6 +28,7 @@ export type SendHttpRequestConfig = {
   method: HttpMethod;
   url: string;
   body?: Record<string, any>;
+  headers?: Record<string, any>;
 };
 
 export type UpdateDatabaseConfig = {
