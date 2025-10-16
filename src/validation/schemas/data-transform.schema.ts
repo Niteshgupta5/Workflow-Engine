@@ -47,7 +47,7 @@ export const filterRule: ObjectSchema<FilterNodeConfig> = Joi.object({
         expression: Joi.string().required(),
         operator: Joi.string()
           .valid(...Object.values(LogicalOperator))
-          .required(),
+          .optional(),
       })
     )
     .required(),
