@@ -4,6 +4,7 @@ import {
   ConversionType,
   DateFormat,
   DateOperation,
+  LogicalOperator,
   LoopType,
   MergeStrategy,
   NodeType,
@@ -40,10 +41,7 @@ export type UpdateDatabaseConfig = {
 // Flow Control Node Configs
 // =============================
 
-export type ConditionalConfig = {
-  expression: string;
-  operator?: string;
-};
+export type ConditionalConfig = ExpressionConfig;
 
 export type LoopConfig = {
   loop_type: LoopType;
@@ -60,6 +58,11 @@ export type SwitchConfig = {
 // =============================
 // Transform Node Configs
 // =============================
+
+export type ExpressionConfig = {
+  expression: string;
+  operator?: LogicalOperator;
+};
 
 export type MapRule = {
   source: string; // JSON path in input, e.g., "$.input.first_name"
@@ -82,7 +85,8 @@ export type RemoveNodeConfig = {
 export type CopyNodeConfig = RenameNodeConfig;
 
 export type FilterNodeConfig = {
-  condition: string; // e.g., "{{ $.input.amount > 1000 }}"
+  condition: ExpressionConfig[]; // e.g., "{{ $.input.amount > 1000 }}"
+  data: string;
 };
 
 export type AggregateNodeConfig = {

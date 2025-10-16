@@ -35,7 +35,7 @@ workflowRouter.get("/", async (req, res) => {
 
 workflowRouter.get("/:id", async (req, res) => {
   try {
-    const data = await getWorkflowById(req.params.id);
+    const data = await getWorkflowById(req.params.id, true);
     res.json({ message: "Workflow get successfully!", data });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -1,12 +1,12 @@
 import { Edge, Node } from "@prisma/client";
 import { getAllOutgoingEdgesForSwitchNode } from "../../../services";
-import { ExecutionResult, ExecutionStatus, NodeEdgesCondition } from "../../../types";
+import { ExecutionStatus, NodeEdgesCondition, SwitchCaseCondition, SwitchResponse } from "../../../types";
 import { evaluateCondition } from "../../../utils";
 
 /**
  * Handles execution of switch-type nodes
  */
-export async function handleSwitchNode(node: Node, context: Record<string, any>): Promise<ExecutionResult> {
+export async function handleSwitchNode(node: Node, context: Record<string, any>): Promise<SwitchResponse> {
   let nodeStatus = ExecutionStatus.COMPLETED;
 
   try {
@@ -43,9 +43,8 @@ export async function handleSwitchNode(node: Node, context: Record<string, any>)
     if (!selectedEdge) throw new Error("Case not matched.");
 
     return {
-      status: nodeStatus,
-      nextNodeId: selectedEdge?.target ?? null,
-      matchedCase: selectedEdge?.condition,
+      matchedCaseLabel: selectedEdge.condition as SwitchCaseCondition,
+      matchedCaseId: selectedEdge.target,
     };
   } catch (err) {
     throw err;

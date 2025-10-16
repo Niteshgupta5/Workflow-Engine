@@ -3,7 +3,7 @@
 
 import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
 import { ExecutionResult } from "./common.types";
-import { HttpMethod, NodeType } from "./enums";
+import { HttpMethod, NodeType, SwitchCaseCondition } from "./enums";
 
 // =============================
 export type SendEmailResponse = {
@@ -34,16 +34,13 @@ export type UpdateDatabaseResponse = {
 // =============================
 // Flow Control Nodes
 // =============================
-export type ConditionalResponse = ExecutionResult;
+export type ConditionalResponse = Omit<ExecutionResult, "nextNodeId"> & { expressionResult: boolean };
 
-export type LoopResponse<ItemType = unknown> = {
-  iteration_index: number;
-  iteration_item: ItemType;
-  loop_result: unknown[];
-};
+export type LoopResponse = ExecutionResult;
 
 export type SwitchResponse = {
-  matched_case: string;
+  matchedCaseLabel: SwitchCaseCondition;
+  matchedCaseId: string | null;
 };
 
 // =============================

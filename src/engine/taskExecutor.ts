@@ -29,7 +29,14 @@ import {
   SwitchResponse,
   EmailOptions,
 } from "../types";
-import { evaluateCondition, executeCodeBlock, httpRequest, resolveTemplate, sendEmail } from "../utils";
+import {
+  evaluateCondition,
+  executeCodeBlock,
+  httpRequest,
+  mergeConditions,
+  resolveTemplate,
+  sendEmail,
+} from "../utils";
 import {
   aggregate,
   convertTypes,
@@ -53,6 +60,7 @@ export type NodeExecutorInput<T extends NodeType> = {
   context: DataObject;
   executionContext: DataObject;
   groupId: string | null;
+  executionId: string;
 };
 
 // Generic executor function type
@@ -80,7 +88,6 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     const { url, method = HttpMethod.GET, body = {}, headers = {} } = node.config;
     const resolvedBody = resolveTemplate(body, context);
     const res = await httpRequest(method, url, resolvedBody, headers);
-    console.log("=====>res", res);
 
     const response: SendHttpRequestResponse = {
       method,
@@ -106,25 +113,16 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // =============================
   // Flow Control Nodes
   // =============================
-  [NodeType.CONDITIONAL]: async ({ context, node, groupId }): Promise<ConditionalResponse> => {
-    return await handleConditionalNode(node, context, groupId);
+  [NodeType.CONDITIONAL]: async ({ context, node }): Promise<ConditionalResponse> => {
+    return await handleConditionalNode(node, context);
   },
 
-  [NodeType.LOOP]: async ({ context, executionContext, node }): Promise<LoopResponse> => {
-    await handleLoopNode(node, "", context, executionContext);
-    return {
-      iteration_index: 0,
-      iteration_item: [],
-      loop_result: [],
-    };
+  [NodeType.LOOP]: async ({ context, executionContext, node, executionId }): Promise<LoopResponse> => {
+    return await handleLoopNode(node, executionId, context, executionContext);
   },
 
   [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
-    const result = await handleSwitchNode(node, context);
-    return {
-      ...result,
-      matched_case: result.matchedCase,
-    };
+    return await handleSwitchNode(node, context);
   },
 
   // =============================
@@ -210,42 +208,35 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.FILTER]: async ({ node, context }): Promise<FilterResponse> => {
-    const data = resolveTemplate(node.config, context);
+    const resolvedData = resolveTemplate(node.config.data, context);
     const { condition } = node.config;
 
-    if (!Array.isArray(data)) {
+    if (!Array.isArray(resolvedData)) {
       throw new Error("FILTER node expects `data` to be an array");
     }
 
-    if (condition && typeof condition === "string") {
-      const filtered_data: JsonValue[] = [];
-      const excluded_data: JsonValue[] = [];
+    const combinedExpression = mergeConditions(condition);
+    const filtered_data: JsonValue[] = [];
+    const excluded_data: JsonValue[] = [];
 
-      for (const item of data) {
-        try {
-          const result = evaluateCondition(condition, { ...context, data: item });
+    for (const item of resolvedData) {
+      try {
+        const result = evaluateCondition(combinedExpression, { ...item });
 
-          if (result.status) {
-            filtered_data.push(item);
-          } else {
-            excluded_data.push(item);
-          }
-        } catch (err) {
+        if (result.status) {
+          filtered_data.push(item);
+        } else {
           excluded_data.push(item);
         }
+      } catch (err) {
+        excluded_data.push(item);
       }
-
-      return {
-        filtered_data,
-        excluded_data,
-        original_data: data,
-      };
     }
 
     return {
-      filtered_data: data,
-      excluded_data: [],
-      original_data: data,
+      filtered_data,
+      excluded_data,
+      original_data: resolvedData,
     };
   },
 

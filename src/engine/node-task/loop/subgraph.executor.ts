@@ -32,7 +32,6 @@ export async function executeSubgraph<T extends NodeType>(
 
     // Update status from result
     nodeStatus = nodeResult.status as ExecutionStatus;
-
     // Initialize output structure for this node if not exists
     if (!executionContext.output[currentNode.id]) {
       executionContext.output[currentNode.id] = {

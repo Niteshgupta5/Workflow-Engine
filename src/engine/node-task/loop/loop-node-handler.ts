@@ -1,9 +1,8 @@
-import { Node } from "@prisma/client";
 import {
-  ExecutionResult,
   ExecutionStatus,
   ExtendedNode,
   LoopConfig,
+  LoopResponse,
   LoopType,
   NodeEdgesCondition,
   NodeType,
@@ -18,7 +17,7 @@ export async function handleLoopNode<T extends NodeType>(
   context: Record<string, any>,
   executionContext: Record<string, any>,
   prevNodeId: string | null = null
-): Promise<ExecutionResult> {
+): Promise<LoopResponse> {
   let nodeStatus = ExecutionStatus.COMPLETED;
   console.log("=====Loop Start=====");
 

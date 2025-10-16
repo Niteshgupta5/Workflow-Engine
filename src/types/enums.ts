@@ -106,6 +106,11 @@ export enum ComparisonOperator {
   NOT_EXISTS = "notExists",
 }
 
+export enum LogicalOperator {
+  AND = "&&",
+  OR = "||",
+}
+
 export enum AggregationOperation {
   SUM = "sum",
   AVG = "avg",

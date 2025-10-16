@@ -19,8 +19,6 @@ export async function runWorkflow(
     output: {},
   };
 
-  const executionContext: Record<string, any> = {};
-
   let currentNode = await getEntryNode(workflow.id); // entry node
   let prevNodeId: string | null = null;
 
@@ -32,8 +30,8 @@ export async function runWorkflow(
       const result = await runNode(
         executionId,
         typedNode,
+        inputContext,
         context,
-        executionContext,
         prevNodeId,
         null // groupId
       );

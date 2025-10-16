@@ -1,7 +1,8 @@
 import type { Node } from "@prisma/client";
 import { getNodeById, logNodeExecution, updateNodeExecutionLog } from "../services";
-import { ExecutionLogEventType, ExecutionResult, ExecutionStatus, ExtendedNode, NodeType } from "../types";
+import { ExecutionLogEventType, ExecutionStatus, ExtendedNode, NodeType } from "../types";
 import { NodeExecutorFn, taskExecutors } from "./taskExecutor";
+import { resolveNextNodeId } from "../utils";
 
 /**
  * Main node runner
@@ -42,7 +43,10 @@ export const runNode = async <T extends NodeType>(
       context,
       executionContext,
       groupId,
+      executionId,
     });
+
+    context.output[node.id] = nodeResult;
 
     await updateNodeExecutionLog(nodeLog.id, {
       status: nodeStatus,
@@ -50,8 +54,7 @@ export const runNode = async <T extends NodeType>(
       data: context.output[node.id],
     });
 
-    // Use type assertion and optional chaining to avoid type error
-    nextNodeId = (nodeResult as ExecutionResult)?.nextNodeId ?? null;
+    nextNodeId = await resolveNextNodeId(node.id, node.type, groupId, nodeResult);
 
     return {
       nodeResult: {
