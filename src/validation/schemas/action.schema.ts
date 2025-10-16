@@ -5,7 +5,7 @@ import { HttpMethod, SendEmailConfig, SendHttpRequestConfig, UpdateDatabaseConfi
 export const sendEmailSchema: { body: ObjectSchema<SendEmailConfig> } = {
   body: Joi.object({
     from: Joi.string().required(),
-    to: Joi.string().required(),
+    to: Joi.array().items(Joi.string()).min(1).required(),
     subject: Joi.string().allow("").required(),
     message: Joi.string().required(),
   }),

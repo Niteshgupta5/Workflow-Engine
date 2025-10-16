@@ -8,7 +8,7 @@ import { HttpMethod, NodeType, SwitchCaseCondition } from "./enums";
 // =============================
 export type SendEmailResponse = {
   from: string;
-  to: string | string[];
+  to: string[];
   subject: string;
   message?: string;
   status: "sent" | "failed";
