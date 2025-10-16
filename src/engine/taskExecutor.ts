@@ -111,19 +111,11 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.LOOP]: async ({ context, executionContext, node }): Promise<LoopResponse> => {
-    await handleLoopNode(node, "", context, executionContext);
-    return {
-      iteration_index: 0,
-      iteration_item: [],
-      loop_result: [],
-    };
+    return await handleLoopNode(node, "", context, executionContext);
   },
 
   [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
-    const result = await handleSwitchNode(node, context);
-    return {
-      matched_case: result.matchedCase,
-    };
+    return handleSwitchNode(node, context);
   },
 
   // =============================

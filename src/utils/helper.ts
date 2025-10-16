@@ -5,7 +5,15 @@ import os from "os";
 import path from "path";
 import { Worker } from "worker_threads";
 
-import { CodeBlockLanguage, CodeExecutionResult, DateFormat, ExecutionLimits } from "../types";
+import {
+  CodeBlockLanguage,
+  CodeExecutionResult,
+  DateFormat,
+  ExecutionLimits,
+  NodeEdgesCondition,
+  NodeResponse,
+  NodeType,
+} from "../types";
 import { ExecutionMemoryError, ExecutionTimeoutError } from "../exceptions";
 import {
   DEFAULT_CPU_TIME_MS,
@@ -15,6 +23,7 @@ import {
   PATTERNS,
 } from "../constants";
 import { isValid, parse, parseISO } from "date-fns";
+import { getNextNodeAfterLoop, getNextNodeId } from "../services";
 const { isNil, isEmpty, isObjectLike, isString, isDate, isNumber, trim } = pkg;
 
 export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
@@ -424,4 +433,36 @@ export const parseDateValue = (value: string | number | Date): Date => {
 
   // No valid parse found
   throw new Error(`Invalid Date: unable to parse "${value}"`);
+};
+
+/**
+ * Returns the next node ID based on the node type and its execution result.
+ */
+export const resolveNextNodeId = async <T extends NodeType>(
+  nodeId: string,
+  type: T,
+  groupId: string | null,
+  nodeResult: NodeResponse<T>
+): Promise<string | null> => {
+  switch (type) {
+    case NodeType.CONDITIONAL: {
+      const { status } = nodeResult as NodeResponse<NodeType.CONDITIONAL>;
+      return getNextNodeId(nodeId, status ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE, groupId);
+    }
+
+    case NodeType.SWITCH: {
+      const { matchedCaseLabel } = nodeResult as NodeResponse<NodeType.SWITCH>;
+      return getNextNodeId(
+        nodeId,
+        matchedCaseLabel ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE,
+        groupId
+      );
+    }
+
+    case NodeType.LOOP:
+      return getNextNodeAfterLoop(nodeId);
+
+    default:
+      return getNextNodeId(nodeId, NodeEdgesCondition.NONE, groupId);
+  }
 };
