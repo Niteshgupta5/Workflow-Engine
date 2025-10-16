@@ -41,8 +41,8 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .required(),
     name: Joi.string().min(3).max(255).required(),
     configuration: nodeConfigurationSchema.required(),
-    retry_attempts: Joi.number().integer().optional(),
-    retry_delay_ms: Joi.number().integer().optional(),
+    retry_attempts: Joi.number().integer().allow(null).optional(),
+    retry_delay_ms: Joi.number().integer().allow(null).optional(),
   }),
 };
 

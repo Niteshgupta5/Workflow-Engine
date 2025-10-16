@@ -17,7 +17,7 @@ export interface ExecutionResult extends JsonConfig {
 export type DataObject = Record<string, unknown>;
 
 export interface EmailOptions {
-  to: string | string[];
+  to: string[];
   subject: string;
   message: string;
   from: string;

@@ -19,7 +19,7 @@ import { HttpMethod } from "./enums";
 
 export type SendEmailConfig = {
   from: string;
-  to: string;
+  to: string[];
   subject: string;
   message: string;
 };

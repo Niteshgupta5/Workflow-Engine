@@ -122,6 +122,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
     const result = await handleSwitchNode(node, context);
     return {
+      ...result,
       matched_case: result.matchedCase,
     };
   },
