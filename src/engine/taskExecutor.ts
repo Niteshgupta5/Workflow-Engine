@@ -216,12 +216,13 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     }
 
     const combinedExpression = mergeConditions(condition);
+
     const filtered_data: JsonValue[] = [];
     const excluded_data: JsonValue[] = [];
 
     for (const item of resolvedData) {
       try {
-        const result = evaluateCondition(combinedExpression, { ...item });
+        const result = evaluateCondition(combinedExpression, { input: item });
 
         if (result.status) {
           filtered_data.push(item);
@@ -232,7 +233,6 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
         excluded_data.push(item);
       }
     }
-
     return {
       filtered_data,
       excluded_data,
