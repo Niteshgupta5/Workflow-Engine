@@ -38,10 +38,19 @@ export async function getWorkflows(): Promise<Workflow[]> {
   }
 }
 
-export async function getWorkflowById(workflowId: string): Promise<Workflow> {
+export async function getWorkflowById(workflowId: string, withRelation: boolean = false): Promise<Workflow> {
   try {
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
+      ...(withRelation && {
+        include: {
+          triggers: true,
+          nodes: {
+            orderBy: { created_at: "asc" },
+          },
+          edges: true,
+        },
+      }),
     });
     if (!workflow) throw Error("Error: Workflow Not Found");
     return workflow;

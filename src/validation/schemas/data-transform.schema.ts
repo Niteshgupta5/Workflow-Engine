@@ -1,4 +1,4 @@
-import Joi, { ObjectSchema } from "joi";
+import Joi, { expression, ObjectSchema } from "joi";
 import {
   AggregateNodeConfig,
   AggregationOperation,
@@ -11,6 +11,7 @@ import {
   FilterNodeConfig,
   FormulaNodeConfig,
   GroupNodeConfig,
+  LogicalOperator,
   MapRule,
   MergeNodeConfig,
   MergeStrategy,
@@ -40,7 +41,17 @@ export const removeRule: ObjectSchema<RemoveNodeConfig> = Joi.object({
 });
 
 export const filterRule: ObjectSchema<FilterNodeConfig> = Joi.object({
-  condition: Joi.string().required(),
+  condition: Joi.array()
+    .items(
+      Joi.object({
+        expression: Joi.string().required(),
+        operator: Joi.string()
+          .valid(...Object.values(LogicalOperator))
+          .required(),
+      })
+    )
+    .required(),
+  data: Joi.string().required(),
 });
 
 export const aggregateRule: ObjectSchema<AggregateNodeConfig> = Joi.object({

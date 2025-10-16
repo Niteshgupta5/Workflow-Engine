@@ -1,7 +1,13 @@
 import { Node } from "@prisma/client";
-import { getNextNodeId } from "../../../services";
-import { ConditionalConfig, ExecutionResult, ExecutionStatus, NodeEdgesCondition } from "../../../types";
-import { evaluateCondition } from "../../../utils";
+import {
+  ConditionalConfig,
+  ConditionalResponse,
+  ExecutionStatus,
+  ExtendedNode,
+  LogicalOperator,
+  NodeType,
+} from "../../../types";
+import { evaluateCondition, mergeConditions } from "../../../utils";
 
 /**
  * Handles execution of conditional-type nodes
@@ -9,10 +15,9 @@ import { evaluateCondition } from "../../../utils";
  * and evaluates them only once.
  */
 export async function handleConditionalNode(
-  node: Node,
-  context: Record<string, any>,
-  groupId: string | null = null
-): Promise<ExecutionResult> {
+  node: ExtendedNode<NodeType>,
+  context: Record<string, any>
+): Promise<ConditionalResponse> {
   let nodeStatus = ExecutionStatus.COMPLETED;
 
   const config = node.config;
@@ -20,21 +25,14 @@ export async function handleConditionalNode(
     throw new Error(`Conditional node ${node.name} configuration not found`);
   }
 
-  const conditions = (config["conditions"] as ConditionalConfig[] | undefined) ?? [];
+  const conditions = (config["conditions"] as ConditionalConfig[]) ?? [];
 
   if (conditions.length === 0) {
     throw new Error(`Conditional node ${node.name} has no conditions defined`);
   }
 
   // Combine all expressions using their operators (default AND)
-  const combinedExpression = conditions
-    .map((cond) => cond.expression)
-    .reduce((acc, expr, idx) => {
-      if (idx === 0) return expr;
-      const operator = conditions[idx].operator ?? "&&"; // default AND
-      return `(${acc}) ${operator} (${expr})`;
-    }, "");
-
+  const combinedExpression = mergeConditions(conditions);
   let pass = true;
 
   try {
@@ -55,9 +53,5 @@ export async function handleConditionalNode(
     throw err;
   }
 
-  const nextNodeId = pass
-    ? await getNextNodeId(node.id, NodeEdgesCondition.ON_TRUE, groupId)
-    : await getNextNodeId(node.id, NodeEdgesCondition.ON_FALSE, groupId);
-
-  return { status: nodeStatus, nextNodeId };
+  return { status: nodeStatus, expressionResult: pass };
 }

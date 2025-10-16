@@ -34,7 +34,7 @@ export type UpdateDatabaseResponse = {
 // =============================
 // Flow Control Nodes
 // =============================
-export type ConditionalResponse = ExecutionResult;
+export type ConditionalResponse = Omit<ExecutionResult, "nextNodeId"> & { expressionResult: boolean };
 
 export type LoopResponse = ExecutionResult;
 

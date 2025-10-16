@@ -10,6 +10,8 @@ import {
   CodeExecutionResult,
   DateFormat,
   ExecutionLimits,
+  ExpressionConfig,
+  LogicalOperator,
   NodeEdgesCondition,
   NodeResponse,
   NodeType,
@@ -446,17 +448,17 @@ export const resolveNextNodeId = async <T extends NodeType>(
 ): Promise<string | null> => {
   switch (type) {
     case NodeType.CONDITIONAL: {
-      const { status } = nodeResult as NodeResponse<NodeType.CONDITIONAL>;
-      return getNextNodeId(nodeId, status ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE, groupId);
+      const { expressionResult } = nodeResult as NodeResponse<NodeType.CONDITIONAL>;
+      return getNextNodeId(
+        nodeId,
+        expressionResult ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE,
+        groupId
+      );
     }
 
     case NodeType.SWITCH: {
       const { matchedCaseLabel } = nodeResult as NodeResponse<NodeType.SWITCH>;
-      return getNextNodeId(
-        nodeId,
-        matchedCaseLabel ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE,
-        groupId
-      );
+      return getNextNodeId(nodeId, matchedCaseLabel, groupId);
     }
 
     case NodeType.LOOP:
@@ -466,3 +468,14 @@ export const resolveNextNodeId = async <T extends NodeType>(
       return getNextNodeId(nodeId, NodeEdgesCondition.NONE, groupId);
   }
 };
+
+export function mergeConditions(conditions: ExpressionConfig[]): string {
+  const combinedExpression = conditions
+    .map((cond) => cond.expression)
+    .reduce((acc, expr, idx) => {
+      if (idx === 0) return expr;
+      const operator = conditions[idx].operator ?? LogicalOperator.AND; // default AND
+      return `(${acc}) ${operator} (${expr})`;
+    }, "");
+  return combinedExpression;
+}
