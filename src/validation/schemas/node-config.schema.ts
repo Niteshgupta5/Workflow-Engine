@@ -52,7 +52,7 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
   {
     is: NodeType.MAP,
     then: Joi.object({
-      map: Joi.array().items(mapRule).min(1).required(),
+      mapping: Joi.array().items(mapRule).min(1).required(),
     }),
   },
   {

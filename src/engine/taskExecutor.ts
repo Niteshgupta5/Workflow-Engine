@@ -28,6 +28,9 @@ import {
   LoopResponse,
   SwitchResponse,
   EmailOptions,
+  AggregateResponse,
+  FormulaResponse,
+  ConcatNodeConfig,
 } from "../types";
 import {
   evaluateCondition,
@@ -40,6 +43,7 @@ import {
 import {
   aggregate,
   convertTypes,
+  convertValue,
   formatDateField,
   getNestedValue,
   handleConditionalNode,
@@ -129,81 +133,65 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // Data Transform Nodes
   // =============================
   [NodeType.MAP]: async ({ node, context }): Promise<MapResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { map } = node.config;
+    const config = resolveTemplate(node.config, context, true);
+    const { mapping } = config;
+    const input = { ...(context["input"] ?? {}) };
 
-    if (Array.isArray(data)) {
-      const result = data.map((item) => mapObject(item, map));
-      return {
-        mapped_data: result[0],
-      };
+    const output: any = {};
+
+    if (Array.isArray(mapping)) {
+      for (const rule of mapping) {
+        setNestedValue(output, rule.target, rule.source);
+      }
     }
 
-    const result = mapObject(data, map);
-    return {
-      mapped_data: result,
-    };
+    return { mapped_data: { ...input, ...output } };
   },
 
   [NodeType.RENAME]: async ({ node, context }): Promise<RenameResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { from, to } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    const mapping = from && to ? { [from]: to } : {};
-
-    if (Array.isArray(data)) {
-      const result = data.map((item) => renameKeys(item, mapping));
+    if (Array.isArray(config)) {
+      const result = config.map((item) => {
+        const mapping = item?.from && item?.to ? { [item.from]: item.to } : {};
+        return renameKeys(input, mapping);
+      });
       return {
         renamed_data: result,
+        original_data: input,
       };
     }
 
-    const result = renameKeys(data, mapping);
+    const { from, to } = config;
+    const mapping = from && to ? { [from]: to } : {};
+    const result = renameKeys(input, mapping);
+
     return {
-      original_data: { to, from },
       renamed_data: result,
+      original_data: input,
     };
   },
 
   [NodeType.REMOVE]: async ({ node, context }): Promise<RemoveResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { fields } = node.config;
-
-    if (Array.isArray(data)) {
-      const result = data.map((item) => removeKeys(item, fields));
-
-      const removedData = data.map((item) => {
-        const removed: JsonObject = {};
-        for (const key of fields) {
-          const val = getNestedValue(item, key);
-          if (val !== undefined) {
-            removed[key] = val;
-          }
-        }
-        return removed;
-      });
-
-      return {
-        original_data: data,
-        remaining_data: result,
-        removed_data: removedData,
-      };
-    }
+    const config = resolveTemplate(node.config, context);
+    const { fields } = config;
+    const input = { ...(context["input"] ?? {}) };
 
     const removed: JsonObject = {};
     for (const key of fields) {
-      const val = getNestedValue(data, key);
+      const val = getNestedValue(input, key);
       if (val !== undefined) {
         removed[key] = val;
       }
     }
 
-    const result = removeKeys(data, fields);
+    const result = removeKeys(input, fields);
 
     return {
-      original_data: data,
-      remaining_data: result,
       removed_data: removed,
+      remaining_data: result,
+      original_data: input,
     };
   },
 
@@ -233,6 +221,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
         excluded_data.push(item);
       }
     }
+
     return {
       filtered_data,
       excluded_data,
@@ -241,110 +230,118 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.CONVERT_TYPE]: async ({ node, context }): Promise<ConvertTypeResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { field, toType } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    const conversionMap = { [field]: toType };
-
-    if (Array.isArray(data)) {
-      const result = data.map((item) => convertTypes(item, conversionMap));
+    if (Array.isArray(config)) {
+      const result = config.map((item) => {
+        return convertValue(item.field, item.toType);
+      });
       return {
         converted_value: result,
-        original_data: data,
+        original_data: input,
       };
     }
 
-    const result = convertTypes(data, conversionMap);
+    const { field, toType } = config;
+    const result = convertValue(field, toType);
     return {
       converted_value: result,
-      original_data: data,
+      original_data: input,
     };
   },
 
   [NodeType.SPLIT]: async ({ node, context }): Promise<SplitResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { field, separator = ",", target, limit, trim = true } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    const sep = separator;
-    const value = field ? getNestedValue(data, field) : data;
-
+    const { field, separator = ",", target, limit, trim = true } = config;
     let result: string[];
 
-    if (typeof value === "string") {
-      const parts = limit ? value.split(sep, limit) : value.split(sep);
+    if (typeof field === "string") {
+      const parts = limit ? field.split(separator, limit) : field.split(separator);
       result = trim ? parts.map((p) => p.trim()) : parts;
-    } else if (Array.isArray(value)) {
-      result = limit ? value.slice(0, limit).map(String) : value.map(String);
+    } else if (Array.isArray(field)) {
+      result = limit ? field.slice(0, limit).map(String) : field.map(String);
     } else {
-      result = Array.isArray(value) ? (value as string[]) : [String(value ?? "")];
+      result = Array.isArray(field) ? (field as string[]) : [String(field ?? "")];
     }
 
     if (target) {
-      const output = Array.isArray(data)
-        ? [...data]
-        : typeof data === "object" && data !== null
-        ? { ...(data as Record<string, unknown>) }
+      const output = Array.isArray(config)
+        ? [...(input as JsonValue[])]
+        : typeof config === "object" && config !== null
+        ? { ...(input as Record<string, unknown>) }
         : {};
 
       setNestedValue(output as Record<string, unknown>, target, result);
-
       return {
-        original_data: data as string,
         split_data: output as JsonValue[],
+        original_data: input as string,
       };
     }
 
     return {
-      original_data: data as string,
       split_data: result,
+      original_data: input as string,
     };
   },
 
   [NodeType.DATE_FORMAT]: async ({ node, context }): Promise<DateFormatResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { field, format: formatStr = FormatType.ISO, target, timezone } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const { field, format: formatStr = FormatType.ISO, target, timezone } = config;
+    const input = { ...(context["input"] ?? {}) };
 
-    const result = formatDateField(data, field, formatStr, target, timezone);
+    const result = formatDateField(input, field, formatStr, target, timezone);
     return {
       formatted_date: (target ? (result as DataObject)[target] : result) as string,
-      original_data: data,
+      original_data: input,
     };
   },
 
   [NodeType.DATE_OPERATION]: async ({ node, context }): Promise<DateOperationResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { field, operation, value, unit = TimeUnit.DAYS, target } = node.config;
+    const config = resolveTemplate(node.config, context);
 
-    if (Array.isArray(data)) {
-      const result = data.map((item) => performDateOperation(item, field, operation, value, unit, target));
+    const input = { ...(context["input"] ?? {}) };
+
+    if (Array.isArray(config)) {
+      const result = config.map((item) => {
+        const { field, operation, value, unit = TimeUnit.DAYS, target } = item;
+        return performDateOperation(input, field, operation, value, unit, target);
+      });
       return {
         date_result: result,
-        original_data: data,
+        original_data: input,
       };
     }
 
-    const result = performDateOperation(data, field, operation, value, unit, target);
+    const { field, operation, value, unit = TimeUnit.DAYS, target } = config;
+    const result = performDateOperation(input, field, operation, value, unit, target);
     return {
       date_result: result,
-      original_data: data,
+      original_data: input,
     };
   },
 
   [NodeType.TIMESTAMP]: async ({ node, context }): Promise<TimestampResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { field, target, operation = TimestampOperation.TO_TIMESTAMP, unit = TimeUnit.MILLISECONDS } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    if (Array.isArray(data)) {
-      const result = data.map((item) => handleTimestamp(item, field, operation, unit, target));
+    if (Array.isArray(config)) {
+      const result = config.map((item) => {
+        const { field, target, operation = TimestampOperation.TO_TIMESTAMP, unit = TimeUnit.MILLISECONDS } = item;
+        return handleTimestamp(input, field, operation, unit, target);
+      });
       return {
-        original_data: data,
+        original_data: input,
         timestamp_result: result,
       };
     }
 
-    const result = handleTimestamp(data, field, operation, unit, target);
+    const { field, target, operation = TimestampOperation.TO_TIMESTAMP, unit = TimeUnit.MILLISECONDS } = config;
+    const result = handleTimestamp(input, field, operation, unit, target);
     return {
-      original_data: data,
+      original_data: input,
       timestamp_result: result,
     };
   },
@@ -354,38 +351,37 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.COPY]: async ({ node, context }): Promise<CopyResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { from, to } = node.config;
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    if (!from || !to) {
-      throw new Error("Copy requires 'from' and 'to' fields");
-    }
-
-    if (Array.isArray(data)) {
-      const result = data.map((item) => {
-        const result = { ...(item as JsonObject) };
-        const value = getNestedValue(item, from);
-        setNestedValue(result, to, value);
+    if (Array.isArray(config)) {
+      const result = config.map((item) => {
+        const result = { ...(input as JsonObject) };
+        setNestedValue(result, item.to, item.from);
         return result;
       });
       return {
         copied_data: result,
-        original_data: data,
+        original_data: input,
       };
     }
 
-    const result = { ...(data as JsonObject) };
-    const value = getNestedValue(data, from);
-    setNestedValue(result, to, value);
+    const { from, to } = config;
+    if (!from || !to) {
+      throw new Error("Copy requires 'from' and 'to' fields");
+    }
+
+    const result = { ...(input as JsonObject) };
+    setNestedValue(result, to, from);
     return {
       copied_data: result,
-      original_data: data,
+      original_data: input,
     };
   },
 
-  [NodeType.AGGREGATE]: async ({ node, context }) => {
-    const data = resolveTemplate(node.config, context);
-    const { groupBy = [], operations = [] } = node.config;
+  [NodeType.AGGREGATE]: async ({ node, context }): Promise<AggregateResponse> => {
+    const config = resolveTemplate(node.config, context, true);
+    const { data = [], groupBy = [], operations = [] } = config;
 
     if (!Array.isArray(data)) {
       throw new Error("Aggregate requires array data");
@@ -394,7 +390,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     if (groupBy.length > 0) {
       const grouped = _.groupBy(data, (item) => groupBy.map((key: string) => getNestedValue(item, key)).join("|"));
 
-      return Object.entries(grouped).map(([key, items]) => {
+      const aggData = Object.entries(grouped).map(([key, items]) => {
         const groupKeys = key.split("|");
         const result: any = {};
 
@@ -409,6 +405,10 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
 
         return result;
       });
+      return {
+        aggregated_data: aggData,
+        original_data: data,
+      };
     }
 
     const result: any = {};
@@ -417,12 +417,15 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
       result[op.target || op.field] = aggResult;
     });
 
-    return result;
+    return {
+      aggregated_data: result,
+      original_data: data,
+    };
   },
 
   [NodeType.GROUP]: async ({ node, context }): Promise<GroupResponse> => {
-    const data = resolveTemplate(node.config, context);
-    const { groupBy } = node.config;
+    const config = resolveTemplate(node.config, context, true);
+    const { data = [], groupBy = [] } = config;
 
     if (!Array.isArray(data)) {
       throw new Error("Group requires array data");
@@ -447,38 +450,34 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     };
   },
 
-  [NodeType.CONCAT]: async ({ node, context }): Promise<ConcatResponse<JsonObject>> => {
-    const data = resolveTemplate(node.config, context);
-    const { sources = [], target, separator = "," } = node.config;
+  [NodeType.CONCAT]: async ({ node, context }): Promise<ConcatResponse> => {
+    const config = resolveTemplate(node.config, context);
+    const input = { ...(context["input"] ?? {}) };
 
-    if (!target) {
-      throw new Error("Concat requires a 'target' field");
-    }
-
-    const concatenate = (item: JsonValue): JsonObject => {
+    const concatenate = (item: ConcatNodeConfig): JsonObject => {
+      const { sources = [], target, separator = "," } = item;
       const values = sources.map((source: string) => {
-        const value = getNestedValue(item, source);
-        return value != null ? String(value) : "";
+        return source != null ? String(source) : "";
       });
 
       const concatenated = values.join(separator);
-      const result = { ...(item as JsonObject) };
+      const result = { ...(input as JsonObject) };
       setNestedValue(result, target, concatenated);
       return result;
     };
 
-    if (Array.isArray(data)) {
-      const response = data.map(concatenate);
+    if (Array.isArray(config)) {
+      const response = config.map(concatenate);
       return {
         concatenated_data: response,
-        original_data: data as JsonObject[],
+        original_data: input as JsonObject[],
       };
     }
 
-    const response = [concatenate(data)];
+    const response = [concatenate(config)];
     return {
       concatenated_data: response,
-      original_data: [data as JsonObject],
+      original_data: [input as JsonObject],
     };
   },
 
@@ -509,10 +508,13 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
       config: { expression },
     },
     context,
-  }) => {
+  }): Promise<FormulaResponse> => {
     const resolvedExpression = resolveTemplate(expression, context, true);
 
     const result = new Function(`return (${resolvedExpression});`)();
-    return result;
+    return {
+      formula_result: result,
+      original_data: expression,
+    };
   },
 };

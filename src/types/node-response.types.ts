@@ -99,7 +99,7 @@ export type CodeBlockResponse<InputType = JsonValue> = {
 };
 
 export type ConvertTypeResponse = {
-  converted_value: JsonValue | JsonValue[];
+  converted_value: unknown;
   original_data: unknown;
 };
 

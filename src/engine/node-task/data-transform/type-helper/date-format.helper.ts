@@ -10,13 +10,16 @@ import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
 
 export const performDateOperation = (
   obj: JsonValue,
-  field: string | undefined,
+  dateValue: string | undefined,
   operation: DateOperation | string,
   value: number,
   unit: TimeUnit | string,
   target?: string
 ): JsonValue | string => {
-  const dateValue = field ? getNestedValue(obj, field) : obj;
+  if (!dateValue) {
+    throw new Error("Date value is required for date operation");
+  }
+
   let date: Date;
 
   if (typeof dateValue === "string") {
@@ -38,12 +41,12 @@ export const performDateOperation = (
 
   const resultValue = newDate.toISOString();
 
-  if (!field && !target) {
+  if (!target) {
     return resultValue;
   }
 
   const result = { ...(obj as JsonObject) };
-  const targetField = target || field;
+  const targetField = target;
 
   if (targetField) {
     if (targetField.includes(".")) {
@@ -58,12 +61,14 @@ export const performDateOperation = (
 
 export const formatDateField = (
   obj: JsonValue,
-  field: string | undefined,
+  value: string | undefined,
   formatStr: FormatType | string,
   target?: string,
   timezone?: string
 ): DataObject | string => {
-  const value = field ? getNestedValue(obj, field) : obj;
+  if (!value) {
+    throw new Error("Field value is required for date formatting");
+  }
   let date: Date;
 
   if (typeof value === "string") {
@@ -103,12 +108,12 @@ export const formatDateField = (
       formatted = format(date, formatStr);
   }
 
-  if (!field && !target) {
+  if (!target) {
     return formatted;
   }
 
   const result = { ...(obj as JsonObject) };
-  const targetField = target || field;
+  const targetField = target;
 
   if (targetField) {
     if (targetField.includes(".")) {
@@ -123,13 +128,11 @@ export const formatDateField = (
 
 export const handleTimestamp = (
   obj: JsonValue,
-  field: string | undefined,
+  value: string | undefined,
   operation: TimestampOperation,
   unit: TimeUnit,
   target?: string
 ): JsonValue | number | string => {
-  const value = field ? getNestedValue(obj, field) : obj;
-
   let result: number | string;
 
   if (operation === TimestampOperation.TO_TIMESTAMP) {
@@ -142,12 +145,12 @@ export const handleTimestamp = (
     result = new Date(ms).toISOString();
   }
 
-  if (!field && !target) {
+  if (!target) {
     return result;
   }
 
   const output = { ...(obj as JsonObject) };
-  const targetField = target || field;
+  const targetField = target;
 
   if (targetField) {
     if (targetField.includes(".")) {

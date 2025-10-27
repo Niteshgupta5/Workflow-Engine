@@ -1,4 +1,4 @@
-import Joi, { expression, ObjectSchema } from "joi";
+import Joi, { ObjectSchema } from "joi";
 import {
   AggregateNodeConfig,
   AggregationOperation,
@@ -55,6 +55,7 @@ export const filterRule: ObjectSchema<FilterNodeConfig> = Joi.object({
 });
 
 export const aggregateRule: ObjectSchema<AggregateNodeConfig> = Joi.object({
+  data: Joi.string().required(),
   groupBy: Joi.array().items(Joi.string()).required(),
   operations: Joi.array()
     .items(
@@ -70,6 +71,7 @@ export const aggregateRule: ObjectSchema<AggregateNodeConfig> = Joi.object({
 });
 
 export const groupRule: ObjectSchema<GroupNodeConfig> = Joi.object({
+  data: Joi.string().required(),
   groupBy: Joi.array().items(Joi.string()).min(1).required(),
 });
 

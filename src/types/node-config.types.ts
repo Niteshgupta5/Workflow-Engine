@@ -70,7 +70,7 @@ export type MapRule = {
 };
 
 export type MappingNodeConfig = {
-  map: MapRule[];
+  mapping: MapRule[];
 };
 
 export type RenameNodeConfig = {
@@ -90,6 +90,7 @@ export type FilterNodeConfig = {
 };
 
 export type AggregateNodeConfig = {
+  data: string;
   groupBy: string[];
   operations: {
     field: string; // field to aggregate
@@ -99,6 +100,7 @@ export type AggregateNodeConfig = {
 };
 
 export type GroupNodeConfig = {
+  data: string;
   groupBy: string[];
 };
 
