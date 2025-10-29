@@ -47,7 +47,7 @@ export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi
           .valid(...Object.values(HttpMethod))
           .required(),
         authentication: authSchema,
-      }).required(),
+      }).optional(),
     }),
   },
   {
@@ -61,7 +61,7 @@ export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi
           .required(),
         endpoint: Joi.string().pattern(PATTERNS.url).required(),
         authentication: authSchema,
-      }).required(),
+      }).optional(),
     }),
   },
   {
@@ -86,7 +86,7 @@ export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi
           .valid(...Object.values(HttpMethod))
           .required(),
         authentication: authSchema,
-      }).required(),
+      }).optional(),
     }),
   },
 ]);

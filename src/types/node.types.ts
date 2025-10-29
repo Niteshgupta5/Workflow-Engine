@@ -30,6 +30,7 @@ export interface CreateNodeRecord {
   workflow_id: string;
   type: NodeType;
   name: string;
+  description?: string;
   prev_node_id?: string;
   next_node_id?: string;
   group_id?: string;
@@ -42,6 +43,7 @@ export interface CreateNodeRecord {
 export interface UpdateNodeRecord {
   type: NodeType;
   name: string;
+  description?: string;
   configuration?: NodeConfiguration;
   retry_attempts?: number;
   retry_delay_ms?: number;

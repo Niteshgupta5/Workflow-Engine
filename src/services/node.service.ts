@@ -22,7 +22,7 @@ import { getWorkflowById } from "./workflow.service";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
-    const { workflow_id, type, name, configuration, ...rest } = data;
+    const { workflow_id, type, name, description, configuration, ...rest } = data;
     await getWorkflowById(workflow_id);
 
     const prevNode =
@@ -39,6 +39,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         workflow_id,
         type,
         name,
+        description,
         parent_id: rest.group_id || undefined,
         config: configuration as JsonConfig,
         template_id: templateId,
@@ -174,6 +175,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
       where: { id: nodeId },
       data: {
         name: data.name ?? existingNode.name,
+        description: data.description ?? existingNode.description,
         config: (data.configuration as JsonConfig) ?? existingNode.config,
         retry_attempts: data.retry_attempts ?? undefined,
         retry_delay_ms: data.retry_delay_ms ?? undefined,

@@ -84,6 +84,7 @@ export enum CodeBlockLanguage {
   PYTHON = "python",
 }
 export enum NodeCategoryType {
+  TRIGGER = "trigger",
   ACTION = "action",
   FLOW_CONTROL = "flow_control",
   DATA_TRANSFORM = "data_transform",
