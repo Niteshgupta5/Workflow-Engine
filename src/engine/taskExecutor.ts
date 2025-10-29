@@ -56,7 +56,7 @@ import {
   setNestedValue,
 } from "./node-task";
 import _ from "lodash";
-import { getRuleExecutionData } from "./static-data";
+import { getRuleExecutionData } from "./data-provider";
 
 // Generic input type with properly constrained node.config
 export type NodeExecutorInput<T extends NodeType> = {
