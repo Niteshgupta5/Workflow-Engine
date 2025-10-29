@@ -1,6 +1,13 @@
 import Joi, { ObjectSchema } from "joi";
 import { PATTERNS } from "../../constants";
-import { ConditionalConfig, LogicalOperator, LoopConfig, LoopType, SwitchConfig } from "../../types";
+import {
+  ConditionalConfig,
+  LogicalOperator,
+  LoopConfig,
+  LoopType,
+  RuleExecutorConfig,
+  SwitchConfig,
+} from "../../types";
 
 export const switchConfigurationSchema: {
   body: ObjectSchema<SwitchConfig>;
@@ -45,5 +52,13 @@ export const conditionSchema: { body: ObjectSchema<ConditionalConfig> } = {
     operator: Joi.string()
       .valid(...Object.values(LogicalOperator))
       .optional(),
+  }),
+};
+
+export const ruleExecutorSchema: {
+  body: ObjectSchema<RuleExecutorConfig>;
+} = {
+  body: Joi.object().keys({
+    ruleset_id: Joi.string().uuid().required(),
   }),
 };

@@ -31,6 +31,7 @@ import {
   AggregateResponse,
   FormulaResponse,
   ConcatNodeConfig,
+  RuleExecutorResponse,
 } from "../types";
 import {
   evaluateCondition,
@@ -55,6 +56,7 @@ import {
   setNestedValue,
 } from "./node-task";
 import _ from "lodash";
+import { getRuleExecutionData } from "./static-data";
 
 // Generic input type with properly constrained node.config
 export type NodeExecutorInput<T extends NodeType> = {
@@ -125,6 +127,14 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
 
   [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
     return await handleSwitchNode(node, context);
+  },
+
+  [NodeType.RULE_EXECUTOR]: async ({ node, context }): Promise<RuleExecutorResponse> => {
+    const { ruleset_id } = node.config;
+    const { url, method, headers, body } = await getRuleExecutionData(ruleset_id);
+    const res = await httpRequest(method, url, body, headers);
+    const ruleEvaluationResult = res.evaluationSummary.passed;
+    return { ruleEvaluationResult };
   },
 
   // =============================

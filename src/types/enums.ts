@@ -30,6 +30,7 @@ export enum NodeType {
   CONDITIONAL = "conditional",
   LOOP = "loop",
   SWITCH = "switch",
+  RULE_EXECUTOR = "rule_executor",
 
   // Data Transformation
 

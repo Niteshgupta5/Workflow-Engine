@@ -1,7 +1,12 @@
 import Joi, { AlternativesSchema } from "joi";
 import { NodeConfiguration, NodeType } from "../../types";
 import { sendEmailSchema, sendHttpRequest, updateDatabaseSchema } from "./action.schema";
-import { conditionSchema, loopConfigurationSchema, switchConfigurationSchema } from "./flow-control.schema";
+import {
+  conditionSchema,
+  loopConfigurationSchema,
+  ruleExecutorSchema,
+  switchConfigurationSchema,
+} from "./flow-control.schema";
 import {
   aggregateRule,
   concatRule,
@@ -48,6 +53,10 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
     then: Joi.object({
       conditions: Joi.array().items(conditionSchema.body).min(1).required(),
     }),
+  },
+  {
+    is: NodeType.RULE_EXECUTOR,
+    then: ruleExecutorSchema.body.required(),
   },
   {
     is: NodeType.MAP,

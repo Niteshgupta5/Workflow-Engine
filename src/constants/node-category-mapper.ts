@@ -9,6 +9,7 @@ export const NODE_CATEGORY_MAPPER: Record<NodeType, NodeCategoryType> = {
   [NodeType.CONDITIONAL]: NodeCategoryType.FLOW_CONTROL,
   [NodeType.SWITCH]: NodeCategoryType.FLOW_CONTROL,
   [NodeType.LOOP]: NodeCategoryType.FLOW_CONTROL,
+  [NodeType.RULE_EXECUTOR]: NodeCategoryType.FLOW_CONTROL,
 
   // Data Transform
   [NodeType.MAP]: NodeCategoryType.DATA_TRANSFORM,

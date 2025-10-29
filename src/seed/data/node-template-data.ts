@@ -40,6 +40,12 @@ export const NODE_TEMPLATES = [
     category: NodeCategoryType.FLOW_CONTROL,
     description: "Branch execution based on multiple cases",
   },
+  {
+    name: "Rule Executor",
+    type: NodeType.RULE_EXECUTOR,
+    category: NodeCategoryType.FLOW_CONTROL,
+    description: "Execute a set of rules based on defined conditions",
+  },
 
   // Data Transformation
   ...[
