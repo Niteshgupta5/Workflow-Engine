@@ -55,9 +55,7 @@ export const conditionSchema: { body: ObjectSchema<ConditionalConfig> } = {
   }),
 };
 
-export const ruleExecutorSchema: {
-  body: ObjectSchema<RuleExecutorConfig>;
-} = {
+export const ruleExecutorSchema: { body: ObjectSchema<RuleExecutorConfig> } = {
   body: Joi.object().keys({
     ruleset_id: Joi.string().uuid().required(),
   }),
