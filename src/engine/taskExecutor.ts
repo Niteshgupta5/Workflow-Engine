@@ -489,6 +489,25 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     };
   },
 
+  [NodeType.FORMULA]: async ({
+    node: {
+      config: { expression },
+    },
+    context,
+  }): Promise<FormulaResponse> => {
+    const resolvedExpression = resoleTemplateAndNormalize(expression, context, true);
+
+    const result = new Function(`return (${resolvedExpression});`)();
+    return {
+      formula_result: result,
+      original_data: expression,
+    };
+  },
+
+  // =============================
+  // Utility Nodes
+  // =============================
+
   [NodeType.CODE_BLOCK]: async ({ node, context }): Promise<CodeBlockResponse> => {
     const data = resoleTemplateAndNormalize(node.config, context);
     const { expression, language } = node.config;
@@ -508,21 +527,6 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     return {
       code_result: result,
       original_data: data,
-    };
-  },
-
-  [NodeType.FORMULA]: async ({
-    node: {
-      config: { expression },
-    },
-    context,
-  }): Promise<FormulaResponse> => {
-    const resolvedExpression = resoleTemplateAndNormalize(expression, context, true);
-
-    const result = new Function(`return (${resolvedExpression});`)();
-    return {
-      formula_result: result,
-      original_data: expression,
     };
   },
 };

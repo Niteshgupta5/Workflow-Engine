@@ -159,16 +159,16 @@ export type TimestampNodeConfig = {
   operation?: TimestampOperation;
 };
 
+export type FormulaNodeConfig = {
+  expression: string;
+};
+
 // =============================
 // Utility Node Configs
 // =============================
 
 export type CodeBlockNodeConfig = {
   language: CodeBlockLanguage;
-  expression: string;
-};
-
-export type FormulaNodeConfig = {
   expression: string;
 };
 
