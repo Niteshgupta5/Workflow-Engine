@@ -19,11 +19,17 @@ export enum TriggerType {
   HTTP_REQUEST = "http_request",
 }
 
+export enum EventName {
+  KYC_INITIATED = "kyc.initiated",
+}
+
 export enum NodeType {
   // Action
   SEND_EMAIL = "send_email",
   SEND_HTTP_REQUEST = "send_http_request",
   UPDATE_DATABASE = "update_database",
+  // VIP_MEMBERSHIP_INVITE = "vip_membership_invite",
+  // PEP_CHECK_INVITE = "pep_check_invite",
 
   // Flow Control
 
