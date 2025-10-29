@@ -37,12 +37,11 @@ import {
   executeCodeBlock,
   httpRequest,
   mergeConditions,
-  resolveTemplate,
+  resoleTemplateAndNormalize,
   sendEmail,
 } from "../utils";
 import {
   aggregate,
-  convertTypes,
   convertValue,
   formatDateField,
   getNestedValue,
@@ -50,7 +49,6 @@ import {
   handleLoopNode,
   handleSwitchNode,
   handleTimestamp,
-  mapObject,
   performDateOperation,
   removeKeys,
   renameKeys,
@@ -76,7 +74,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // =============================
   [NodeType.SEND_EMAIL]: async ({ node, context }): Promise<SendEmailResponse> => {
     const { from, to, subject, message } = node.config;
-    const resolvedBody: EmailOptions = resolveTemplate({ from, to, subject, message }, context);
+    const resolvedBody: EmailOptions = resoleTemplateAndNormalize({ from, to, subject, message }, context);
 
     const emailResponse = await sendEmail(resolvedBody);
     const response: SendEmailResponse = {
@@ -90,7 +88,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
 
   [NodeType.SEND_HTTP_REQUEST]: async ({ node, context }): Promise<SendHttpRequestResponse> => {
     const { url, method = HttpMethod.GET, body = {}, headers = {} } = node.config;
-    const resolvedBody = resolveTemplate(body, context);
+    const resolvedBody = resoleTemplateAndNormalize(body, context);
     const res = await httpRequest(method, url, resolvedBody, headers);
 
     const response: SendHttpRequestResponse = {
@@ -133,7 +131,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   // Data Transform Nodes
   // =============================
   [NodeType.MAP]: async ({ node, context }): Promise<MapResponse> => {
-    const config = resolveTemplate(node.config, context, true);
+    const config = resoleTemplateAndNormalize(node.config, context, true);
     const { mapping } = config;
     const input = { ...(context["input"] ?? {}) };
 
@@ -149,7 +147,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.RENAME]: async ({ node, context }): Promise<RenameResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     if (Array.isArray(config)) {
@@ -174,7 +172,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.REMOVE]: async ({ node, context }): Promise<RemoveResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const { fields } = config;
     const input = { ...(context["input"] ?? {}) };
 
@@ -196,7 +194,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.FILTER]: async ({ node, context }): Promise<FilterResponse> => {
-    const resolvedData = resolveTemplate(node.config.data, context);
+    const resolvedData = resoleTemplateAndNormalize(node.config.data, context);
     const { condition } = node.config;
 
     if (!Array.isArray(resolvedData)) {
@@ -230,7 +228,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.CONVERT_TYPE]: async ({ node, context }): Promise<ConvertTypeResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     if (Array.isArray(config)) {
@@ -252,7 +250,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.SPLIT]: async ({ node, context }): Promise<SplitResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     const { field, separator = ",", target, limit, trim = true } = config;
@@ -288,7 +286,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.DATE_FORMAT]: async ({ node, context }): Promise<DateFormatResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const { field, format: formatStr = FormatType.ISO, target, timezone } = config;
     const input = { ...(context["input"] ?? {}) };
 
@@ -300,7 +298,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.DATE_OPERATION]: async ({ node, context }): Promise<DateOperationResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
 
     const input = { ...(context["input"] ?? {}) };
 
@@ -324,7 +322,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.TIMESTAMP]: async ({ node, context }): Promise<TimestampResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     if (Array.isArray(config)) {
@@ -351,7 +349,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.COPY]: async ({ node, context }): Promise<CopyResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     if (Array.isArray(config)) {
@@ -380,7 +378,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.AGGREGATE]: async ({ node, context }): Promise<AggregateResponse> => {
-    const config = resolveTemplate(node.config, context, true);
+    const config = resoleTemplateAndNormalize(node.config, context, true);
     const { data = [], groupBy = [], operations = [] } = config;
 
     if (!Array.isArray(data)) {
@@ -424,7 +422,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.GROUP]: async ({ node, context }): Promise<GroupResponse> => {
-    const config = resolveTemplate(node.config, context, true);
+    const config = resoleTemplateAndNormalize(node.config, context, true);
     const { data = [], groupBy = [] } = config;
 
     if (!Array.isArray(data)) {
@@ -451,7 +449,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.CONCAT]: async ({ node, context }): Promise<ConcatResponse> => {
-    const config = resolveTemplate(node.config, context);
+    const config = resoleTemplateAndNormalize(node.config, context);
     const input = { ...(context["input"] ?? {}) };
 
     const concatenate = (item: ConcatNodeConfig): JsonObject => {
@@ -482,7 +480,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.CODE_BLOCK]: async ({ node, context }): Promise<CodeBlockResponse> => {
-    const data = resolveTemplate(node.config, context);
+    const data = resoleTemplateAndNormalize(node.config, context);
     const { expression, language } = node.config;
 
     if (!expression) {
@@ -494,7 +492,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
       data,
       _,
     };
-    const resolvedCode = resolveTemplate(expression, execContext, true);
+    const resolvedCode = resoleTemplateAndNormalize(expression, execContext, true);
     const result = await executeCodeBlock(resolvedCode, language);
 
     return {
@@ -509,7 +507,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     },
     context,
   }): Promise<FormulaResponse> => {
-    const resolvedExpression = resolveTemplate(expression, context, true);
+    const resolvedExpression = resoleTemplateAndNormalize(expression, context, true);
 
     const result = new Function(`return (${resolvedExpression});`)();
     return {

@@ -8,7 +8,7 @@ import {
   NodeType,
 } from "../../../types";
 import { getNextNodeAfterLoop, getNextNodeId } from "../../../services";
-import { evaluateCondition, resolveTemplate } from "../../../utils";
+import { evaluateCondition, resoleTemplateAndNormalize } from "../../../utils";
 import { executeSubgraph } from "./subgraph.executor";
 
 export async function handleLoopNode<T extends NodeType>(
@@ -126,7 +126,7 @@ async function handleForEachLoop<T extends NodeType>(
     throw new Error(`data_source_path config not found for Conditional loop type in ${loopNode.name} node`);
 
   let nodeStatus = ExecutionStatus.COMPLETED;
-  const items = resolveTemplate(configs.data_source_path, context);
+  const items = resoleTemplateAndNormalize(configs.data_source_path, context);
   if (!Array.isArray(items)) {
     throw new Error(`Loop [${loopNode.name}] expected array at ${configs.data_source_path}, got:`, items);
   }

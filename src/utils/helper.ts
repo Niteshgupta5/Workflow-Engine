@@ -26,6 +26,7 @@ import {
 } from "../constants";
 import { isValid, parse, parseISO } from "date-fns";
 import { getNextNodeAfterLoop, getNextNodeId } from "../services";
+import { resolveFunctions } from "./function-resolver";
 const { isNil, isEmpty, isObjectLike, isString, isDate, isNumber, trim } = pkg;
 
 export function evaluateCondition(expression: string, context: Record<string, any>): { status: boolean; value: any } {
@@ -82,7 +83,7 @@ export function resolvePath(obj: any, path: string) {
   }, obj);
 }
 
-export function resolveTemplate(value: any, context: any, strict: boolean = false): any {
+function resolveTemplate(value: any, context: any, strict: boolean = false): any {
   if (typeof value === "string") {
     const templateRegex = /\{\{(.*?)\}\}/g;
     let fullString = value.trim();
@@ -139,6 +140,11 @@ export function resolveTemplate(value: any, context: any, strict: boolean = fals
   }
 
   return value;
+}
+
+export function resoleTemplateAndNormalize(value: any, context: any, strict: boolean = false): any {
+  const resolved = resolveTemplate(value, context, strict);
+  return resolveFunctions(resolved);
 }
 
 /**
