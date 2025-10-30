@@ -119,7 +119,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   [NodeType.VIP_MEMBERSHIP_INVITE]: async ({ context, node }): Promise<VipMembershipInviteResponse> => {
     const config = resoleTemplateAndNormalize(node.config, context);
     const { email } = config;
-    const { url, method, headers, body } = await getVipMembershipInviteData(email);
+    const { url, method, headers, body } = await getVipMembershipInviteData(email || "{{ $.input.email }}");
     const resolvedBody = resoleTemplateAndNormalize(body, context);
     const response = await httpRequest(method, url, resolvedBody, headers);
     return { response };
@@ -128,7 +128,7 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   [NodeType.PEP_CHECK_INVITE]: async ({ context, node }): Promise<PepCheckInviteResponse> => {
     const config = resoleTemplateAndNormalize(node.config, context);
     const { email } = config;
-    const { url, method, headers, body } = await getPepCheckInviteData(email);
+    const { url, method, headers, body } = await getPepCheckInviteData(email || "{{ $.input.email }}");
     const resolvedBody = resoleTemplateAndNormalize(body, context);
     const response = await httpRequest(method, url, resolvedBody, headers);
     return { response };
@@ -150,8 +150,9 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.RULE_EXECUTOR]: async ({ node, context }): Promise<RuleExecutorResponse> => {
-    const { ruleset_id } = node.config;
-    const { url, method, headers, body } = await getRuleExecutionData(ruleset_id);
+    const { ruleset_id, user_id } = node.config;
+    const resolvedUserId = resoleTemplateAndNormalize(user_id || "{{ $.input.userId }}", context);
+    const { url, method, headers, body } = await getRuleExecutionData(ruleset_id, resolvedUserId);
     const res = await httpRequest(method, url, body, headers);
     const ruleEvaluationResult = res.evaluationSummary.passed;
     return { ruleEvaluationResult };

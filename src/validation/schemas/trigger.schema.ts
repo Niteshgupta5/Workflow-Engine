@@ -76,7 +76,7 @@ export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi
           .valid(...Object.values(HttpMethod))
           .optional(),
         endpoint: Joi.string().pattern(PATTERNS.url).optional(),
-        authentication: authSchema,
+        // authentication: authSchema,
       }).required(),
     }),
   },

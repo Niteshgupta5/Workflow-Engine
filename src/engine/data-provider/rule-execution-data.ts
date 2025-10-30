@@ -1,7 +1,7 @@
 import { HttpMethod, SendHttpRequestConfig } from "../../types";
 
-export const getRuleExecutionData = async (ruleId: string): Promise<SendHttpRequestConfig> => ({
-  url: `https://develop-api.chainit.online/rule-engine/v1/rule/evaluate?ruleId=${ruleId}`,
+export const getRuleExecutionData = async (ruleId: string, userId: string): Promise<SendHttpRequestConfig> => ({
+  url: `https://develop-api.chainit.online/rule-engine/v1/rule/evaluate?ruleId=${ruleId}&userId=${userId}`,
   method: HttpMethod.GET,
   headers: {
     "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
@@ -26,8 +26,8 @@ export const getVipMembershipInviteData = async (email: string): Promise<SendHtt
     roleIds: [17],
     groupIds: ["7dc6184e-2839-425d-8b69-200714b3a1a1"],
     jobTitle: "MEMBERSHIP",
-    lastName: "{{ $.input.last_name }}",
-    firstName: "{{ $.input.first_name }}",
+    lastName: "{{ $.input.firstName }}",
+    firstName: "{{ $.input.lastName }}",
   },
 });
 
@@ -52,7 +52,7 @@ export const getPepCheckInviteData = async (email: string): Promise<SendHttpRequ
     roleIds: [17],
     groupIds: ["7dc6184e-2839-425d-8b69-200714b3a1a1"],
     jobTitle: "",
-    lastName: "{{ $.input.last_name }}",
-    firstName: "{{ $.input.first_name }}",
+    lastName: "{{ $.input.firstName }}",
+    firstName: "{{ $.input.lastName }}",
   },
 });

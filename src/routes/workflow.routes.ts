@@ -1,6 +1,13 @@
 import { Router } from "express";
-import { createWorkflow, deleteWorkflow, getWorkflowById, getWorkflows, updateWorkflow } from "../services";
-import { runWorkflow } from "../engine";
+import {
+  createWorkflow,
+  deleteWorkflow,
+  getActiveTriggerByWorkflowId,
+  getWorkflowById,
+  getWorkflows,
+  updateWorkflow,
+} from "../services";
+import { executeTrigger, runWorkflow } from "../engine";
 import { createWorkflowSchema, deleteWorkflowSchema, validateRequest } from "../validation";
 import { CreateWorkflowRecord, IdParameter } from "../types";
 
@@ -59,4 +66,15 @@ workflowRouter.delete("/:id", validateRequest<IdParameter>(deleteWorkflowSchema)
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+workflowRouter.post("/:workflowId/execute", async (req, res) => {
+  const { workflowId } = req.params as any;
+  const inputContext = req.body || {};
+  const trigger = await getActiveTriggerByWorkflowId(workflowId);
+  if (!trigger) {
+    return res.status(400).json({ error: "No active trigger found for the workflow" });
+  }
+  const { status, ...rest } = await executeTrigger(trigger?.id, inputContext);
+  res.status(status).json(rest);
 });

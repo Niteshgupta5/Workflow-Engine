@@ -38,12 +38,12 @@ export const updateDatabaseSchema: { body: ObjectSchema<UpdateDatabaseConfig> } 
 
 export const vipMembershipInviteSchema: { body: ObjectSchema<VipMembershipInviteConfig> } = {
   body: Joi.object().keys({
-    email: Joi.string().email().required(),
+    // email: Joi.string().required(),
   }),
 };
 
 export const pepCheckInviteSchema: { body: ObjectSchema<PepCheckInviteConfig> } = {
   body: Joi.object().keys({
-    email: Joi.string().email().required(),
+    // email: Joi.string().required(),
   }),
 };
