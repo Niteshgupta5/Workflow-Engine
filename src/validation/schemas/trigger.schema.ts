@@ -3,6 +3,7 @@ import {
   AuthConfig,
   AuthType,
   CreateTriggerRecord,
+  EventName,
   HttpMethod,
   IdParameter,
   TriggerConfiguration,
@@ -68,7 +69,9 @@ export const configurationSchema: AlternativesSchema<TriggerConfiguration> = Joi
     is: TriggerType.EVENT,
     then: Joi.object({
       event: Joi.object({
-        event_name: Joi.string().max(255).required(),
+        event_name: Joi.string()
+          .valid(...Object.values(EventName))
+          .required(),
         method: Joi.string()
           .valid(...Object.values(HttpMethod))
           .optional(),

@@ -6,12 +6,14 @@ export interface NodeCategoryDTO {
   updated_at: Date;
 }
 
+export interface NodeTemplateDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  category_id: string | null;
+}
+
 export interface NodeCategoryWithTemplatesDTO extends NodeCategoryDTO {
-  NodeTemplate: {
-    id: string;
-    name: string;
-    description: string | null;
-    type: string;
-    category_id: string | null;
-  }[];
+  NodeTemplate: NodeTemplateDTO[];
 }

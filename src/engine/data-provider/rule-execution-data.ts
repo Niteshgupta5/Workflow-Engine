@@ -9,3 +9,50 @@ export const getRuleExecutionData = async (ruleId: string): Promise<SendHttpRequ
   },
   body: {},
 });
+
+export const getVipMembershipInviteData = async (email: string): Promise<SendHttpRequestConfig> => ({
+  url: `https://develop-api.chainit.online/users/v1/end-user/invites`,
+  method: HttpMethod.POST,
+  headers: {
+    "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
+    Authorization: `Bearer ${process.env.CHAINIT_API_KEY}`,
+    "X-Organization-Id": "00000000-0000-0000-0000-000000000000",
+  },
+  body: {
+    type: "MEMBERSHIP",
+    email,
+    orgId: "00000000-0000-0000-0000-000000000000",
+    appName: "KYC",
+    roleIds: [17],
+    groupIds: ["7dc6184e-2839-425d-8b69-200714b3a1a1"],
+    jobTitle: "MEMBERSHIP",
+    lastName: "{{ $.input.last_name }}",
+    firstName: "{{ $.input.first_name }}",
+  },
+});
+
+export const getPepCheckInviteData = async (email: string): Promise<SendHttpRequestConfig> => ({
+  url: `https://develop-api.chainit.online/users/v1/end-user/invites`,
+  method: HttpMethod.POST,
+  headers: {
+    "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
+    Authorization: `Bearer ${process.env.CHAINIT_API_KEY}`,
+    "X-Organization-Id": "00000000-0000-0000-0000-000000000000",
+  },
+  body: {
+    type: "MEMBERSHIP",
+    email,
+    orgId: "00000000-0000-0000-0000-000000000000",
+    addons: [
+      {
+        addonType: "PEP_CHECK",
+      },
+    ],
+    appName: "KYC",
+    roleIds: [17],
+    groupIds: ["7dc6184e-2839-425d-8b69-200714b3a1a1"],
+    jobTitle: "",
+    lastName: "{{ $.input.last_name }}",
+    firstName: "{{ $.input.first_name }}",
+  },
+});

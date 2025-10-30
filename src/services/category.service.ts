@@ -1,7 +1,7 @@
 import { NodeCategory } from "@prisma/client";
 import { prisma } from "../config";
-import { NODE_CATEGORY_MAPPER } from "../constants";
-import { NodeCategoryWithTemplatesDTO, NodeType } from "../types";
+import { NODE_CATEGORY_MAPPER, TriggerRegistry } from "../constants";
+import { NodeCategoryType, NodeCategoryWithTemplatesDTO, NodeType } from "../types";
 
 export async function getCategoryByNodeType(type: NodeType): Promise<NodeCategory> {
   try {
@@ -19,6 +19,11 @@ export async function getAllCategoriesWithTemplates(): Promise<NodeCategoryWithT
   try {
     const categories = await prisma.nodeCategory.findMany({
       select: { id: true, name: true, description: true, created_at: true, updated_at: true, NodeTemplate: true },
+    });
+    categories.map((category) => {
+      if (category.name == NodeCategoryType.TRIGGER && !category.NodeTemplate.length) {
+        category.NodeTemplate = Object.values(TriggerRegistry);
+      }
     });
     return categories;
   } catch (error) {

@@ -10,7 +10,7 @@ export async function createTrigger(data: CreateTriggerRecord): Promise<Trigger>
     }
     const typeConfig = data.configuration[data.type] as JsonConfig | undefined;
 
-    if (typeConfig) {
+    if (typeConfig && data.type != TriggerType.EVENT) {
       typeConfig["endpoint"] = `${process.env.BASE_URL}/workflow/${data.workflow_id}/run`;
       typeConfig["method"] = HttpMethod.POST;
     }
@@ -67,7 +67,7 @@ export async function updateTrigger(id: string, data: UpdateTriggerRecord): Prom
       throw new Error(`Trigger type cannot be updated. Please remove trigger ${id} and create a new one.`);
     }
 
-    if (data.configuration) {
+    if (data.configuration && data.type != TriggerType.EVENT) {
       (data.configuration[data.type] as JsonConfig)[
         "endpoint"
       ] = `${process.env.BASE_URL}/workflow/${existing.workflow_id}/run`;

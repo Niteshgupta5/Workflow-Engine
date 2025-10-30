@@ -5,6 +5,8 @@ export const NodeOutputRegistry: Record<NodeType, string[]> = {
   [NodeType.SEND_EMAIL]: ["from", "to", "subject", "message", "status", "timestamp"],
   [NodeType.SEND_HTTP_REQUEST]: ["url", "method", "body", "status", "response", "response_code"],
   [NodeType.UPDATE_DATABASE]: ["table", "data", "updated_count", "status"],
+  [NodeType.VIP_MEMBERSHIP_INVITE]: ["response"],
+  [NodeType.PEP_CHECK_INVITE]: ["response"],
 
   // Flow Control Nodes
   [NodeType.CONDITIONAL]: ["result"],

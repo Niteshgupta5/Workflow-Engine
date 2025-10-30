@@ -4,6 +4,8 @@ export const NODE_CATEGORY_MAPPER: Record<NodeType, NodeCategoryType> = {
   [NodeType.SEND_EMAIL]: NodeCategoryType.ACTION,
   [NodeType.SEND_HTTP_REQUEST]: NodeCategoryType.ACTION,
   [NodeType.UPDATE_DATABASE]: NodeCategoryType.ACTION,
+  [NodeType.VIP_MEMBERSHIP_INVITE]: NodeCategoryType.ACTION,
+  [NodeType.PEP_CHECK_INVITE]: NodeCategoryType.ACTION,
 
   // Flow Control
   [NodeType.CONDITIONAL]: NodeCategoryType.FLOW_CONTROL,

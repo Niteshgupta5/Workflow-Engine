@@ -29,7 +29,6 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
       rest.prev_node_id && rest.prev_node_id !== START_NODE_ID
         ? await getNodeById(rest.prev_node_id, workflow_id)
         : null;
-
     await checkNodeValidations(data, prevNode);
 
     // Create New Node

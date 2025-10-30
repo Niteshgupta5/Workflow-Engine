@@ -30,7 +30,7 @@ triggerRouter.get("/:id", validateRequest<IdParameter>(getTriggerSchema), async 
   }
 });
 
-triggerRouter.patch("/:id/update", validateRequest<UpdateTriggerRecord>(updateTriggerSchema), async (req, res) => {
+triggerRouter.patch("/:id", validateRequest<UpdateTriggerRecord>(updateTriggerSchema), async (req, res) => {
   try {
     const data = await updateTrigger(req.params.id, req.body);
     res.json({ message: "Trigger updated successfully!", data });
@@ -40,14 +40,10 @@ triggerRouter.patch("/:id/update", validateRequest<UpdateTriggerRecord>(updateTr
 });
 
 triggerRouter.post("/:triggerId/execute", async (req, res) => {
-  try {
-    const { triggerId } = req.params as any;
-    const inputContext = req.body || {};
-    const { status, ...rest } = await executeTrigger(triggerId, inputContext);
-    res.json(rest);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
+  const { triggerId } = req.params as any;
+  const inputContext = req.body || {};
+  const { status, ...rest } = await executeTrigger(triggerId, inputContext);
+  res.status(status).json(rest);
 });
 
 triggerRouter.delete("/:id", validateRequest<IdParameter>(deleteTriggerSchema), async (req, res) => {
