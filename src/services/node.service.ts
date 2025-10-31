@@ -1,4 +1,4 @@
-import { Node, Prisma } from "@prisma/client";
+import { Edge, Node, Prisma } from "@prisma/client";
 import { prisma } from "../config";
 import {
   createNodeEdge,
@@ -20,7 +20,7 @@ import { PATTERNS, START_NODE_ID } from "../constants";
 import { getTemplateIdByNodeType } from "./node-template.service";
 import { getWorkflowById } from "./workflow.service";
 
-export async function createNode(data: CreateNodeRecord): Promise<Node> {
+export async function createNode(data: CreateNodeRecord): Promise<Node & { edges: Edge[] }> {
   try {
     const { workflow_id, type, name, description, configuration, ...rest } = data;
     await getWorkflowById(workflow_id);
@@ -47,9 +47,11 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
       },
     });
 
+    const edges: Edge[] = [];
+
     // Create self-edge for loop nodes
     if (newNode.type == NodeType.LOOP) {
-      await createNodeEdge(
+      const nodeEdge = await createNodeEdge(
         {
           workflow_id,
           source: newNode.id,
@@ -59,6 +61,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         },
         false
       );
+      edges.push(nodeEdge);
     }
 
     // Edge Handling
@@ -67,7 +70,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         // For In Between Node
         const deletedEdges = await deleteNodeEdges(workflow_id, rest.prev_node_id, rest.next_node_id);
 
-        await createNodeEdge(
+        const nodeEdge1 = await createNodeEdge(
           {
             workflow_id,
             source: rest.prev_node_id,
@@ -79,7 +82,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           false
         );
 
-        await createNodeEdge({
+        const nodeEdge2 = await createNodeEdge({
           workflow_id,
           source: newNode.id,
           target: rest.next_node_id,
@@ -90,10 +93,13 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
             : NodeEdgesCondition.NONE,
           group_id: rest.group_id || undefined,
         });
+
+        edges.push(nodeEdge1);
+        edges.push(nodeEdge2);
       } else {
         // For Last Node
         const expression = rest.condition ? await getSwitchCaseEdgeExpression(prevNode, rest.condition) : undefined;
-        await createNodeEdge(
+        const nodeEdge = await createNodeEdge(
           {
             workflow_id,
             source: rest.prev_node_id,
@@ -104,10 +110,11 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           },
           false
         );
+        edges.push(nodeEdge);
       }
     } else if (rest.prev_node_id === START_NODE_ID && rest.next_node_id) {
       // For Beginning Node
-      await createNodeEdge(
+      const nodeEdge = await createNodeEdge(
         {
           workflow_id,
           source: newNode.id,
@@ -121,9 +128,10 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         },
         false
       );
+      edges.push(nodeEdge);
     }
 
-    return newNode;
+    return { ...newNode, edges: edges };
   } catch (error) {
     console.error("ERROR: TO CREATE NODE", error);
     throw error;

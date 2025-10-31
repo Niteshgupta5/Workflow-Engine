@@ -1,7 +1,7 @@
 import { HttpMethod, SendHttpRequestConfig } from "../../types";
 
 export const getRuleExecutionData = async (ruleId: string, userId: string): Promise<SendHttpRequestConfig> => ({
-  url: `https://develop-api.chainit.online/rule-engine/v1/rule/evaluate?ruleId=${ruleId}&userId=${userId}`,
+  url: `${process.env.BIT_CORE_SERVER_URL}/rule-engine/v1/rule/evaluate?ruleId=${ruleId}&userId=${userId}`,
   method: HttpMethod.GET,
   headers: {
     "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
@@ -11,7 +11,7 @@ export const getRuleExecutionData = async (ruleId: string, userId: string): Prom
 });
 
 export const getVipMembershipInviteData = async (email: string): Promise<SendHttpRequestConfig> => ({
-  url: `https://develop-api.chainit.online/users/v1/end-user/invites`,
+  url: `${process.env.BIT_CORE_SERVER_URL}/users/v1/end-user/invites`,
   method: HttpMethod.POST,
   headers: {
     "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
@@ -32,7 +32,7 @@ export const getVipMembershipInviteData = async (email: string): Promise<SendHtt
 });
 
 export const getPepCheckInviteData = async (email: string): Promise<SendHttpRequestConfig> => ({
-  url: `https://develop-api.chainit.online/users/v1/end-user/invites`,
+  url: `${process.env.BIT_CORE_SERVER_URL}/users/v1/end-user/invites`,
   method: HttpMethod.POST,
   headers: {
     "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
@@ -54,5 +54,19 @@ export const getPepCheckInviteData = async (email: string): Promise<SendHttpRequ
     jobTitle: "",
     lastName: "{{ $.input.firstName }}",
     firstName: "{{ $.input.lastName }}",
+  },
+});
+
+export const refreshChainItTokenData = async (): Promise<SendHttpRequestConfig> => ({
+  url: `${process.env.BIT_CORE_SERVER_URL}/users/v1/admin/auth/refresh-token`,
+  method: HttpMethod.POST,
+  headers: {
+    "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
+    Authorization: `Bearer ${process.env.CHAINIT_API_KEY}`,
+  },
+  body: {
+    clientId: `${process.env.BIT_CORE_CLIENT_ID}`,
+    refreshToken: `${process.env.BIT_CORE_REFRESH_TOKEN}`,
+    platform: "ADMIN_PORTAL",
   },
 });

@@ -3,6 +3,7 @@ import {
   createWorkflow,
   deleteWorkflow,
   getActiveTriggerByWorkflowId,
+  getAllTriggersByEventName,
   getWorkflowById,
   getWorkflows,
   updateWorkflow,
@@ -77,4 +78,13 @@ workflowRouter.post("/:workflowId/execute", async (req, res) => {
   }
   const { status, ...rest } = await executeTrigger(trigger?.id, inputContext);
   res.status(status).json(rest);
+});
+
+workflowRouter.post("/run", async (req, res) => {
+  const { eventName, data } = req.body;
+  const triggers = await getAllTriggersByEventName(eventName);
+  triggers.forEach(async (trigger) => {
+    await executeTrigger(trigger.id, data || {});
+  });
+  res.json({ message: "Workflow Execution Started!" });
 });

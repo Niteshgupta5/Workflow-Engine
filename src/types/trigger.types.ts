@@ -26,6 +26,7 @@ export interface TriggerConfiguration {
     method: HttpMethod;
     endpoint: string;
     authentication?: AuthConfig;
+    mockData?: unknown;
   };
   [TriggerType.SCHEDULE]?: {
     cron_expression: string;
@@ -33,16 +34,19 @@ export interface TriggerConfiguration {
     method: HttpMethod;
     endpoint: string;
     authentication?: AuthConfig;
+    mockData?: unknown;
   };
   [TriggerType.EVENT]?: {
     event_name: EventName;
     method: HttpMethod;
     endpoint: string;
     authentication?: AuthConfig;
+    mockData?: unknown;
   };
   [TriggerType.HTTP_REQUEST]?: {
     method: HttpMethod;
     endpoint: string;
     authentication?: AuthConfig;
+    mockData?: unknown;
   };
 }
