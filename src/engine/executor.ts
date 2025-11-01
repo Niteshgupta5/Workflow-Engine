@@ -1,4 +1,11 @@
-import { createExecution, getEntryNode, getTriggerById, getWorkflowById, updateExecution } from "../services";
+import {
+  createExecution,
+  getEntryNode,
+  getExecutionById,
+  getTriggerById,
+  getWorkflowById,
+  updateExecution,
+} from "../services";
 import { ExecutionStatus, ExtendedNode, HttpMethod, NodeType, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
@@ -12,6 +19,7 @@ export async function runWorkflow(
 
   if (!workflow) throw new Error("Workflow not found");
   if (!workflow.enabled) throw new Error("Workflow is not enabled");
+  await getExecutionById(executionId);
   console.log(`==== Execution ${executionId} started for workflow ${workflow.name} ====`);
 
   const context: Record<string, any> = {
