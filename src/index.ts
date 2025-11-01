@@ -10,6 +10,9 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use("/api", apiRouter);
+app.use("/", (_req, res) => {
+  res.send("Workflow Engine is running!");
+});
 
 const PORT = process.env.PORT || 4000;
 const NODE_ENV = process.env.NODE_ENV || "development";
