@@ -162,66 +162,82 @@ export const executeCodeBlock = async (
 
   const startTime = Date.now();
 
-  try {
-    // JS code runs inside Worker for isolation
-    if (language === CodeBlockLanguage.JAVASCRIPT) {
-      return await runJsInWorker(code, timeoutMs, startTime);
-    }
-
-    // Dynamic language execution via child process
-    const config = LANGUAGE_CONFIGS[language];
-    if (!config) return formatExecutionResult(false, `Unsupported language: ${language}`, startTime);
-
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "code-exec-"));
-    const sourceFile = path.join(tempDir, `code${config.fileExtension}`);
-    const compiledFile = path.join(tempDir, "output");
-
-    await fs.writeFile(sourceFile, code, "utf-8");
-
-    let execCommand = config.command;
-    let execArgs: string[] = [];
-
-    if (config.needsCompilation) {
-      const compileResult = await runProcess(
-        config.compileCommand!,
-        config.compileArgs!(sourceFile, compiledFile),
-        timeoutMs,
-        memoryLimitKB
-      );
-      if (!compileResult.success) {
-        await cleanup(tempDir);
-        return formatExecutionResult(false, `Compilation failed:\n${compileResult.error}`, startTime);
-      }
-      execCommand = compiledFile;
-      execArgs = config.runArgs ? config.runArgs(sourceFile) : [];
-    } else {
-      execArgs = config.runArgs!(sourceFile);
-    }
-
-    const result = await runProcess(execCommand, execArgs, timeoutMs, memoryLimitKB, cpuTimeMs, input);
-
-    await cleanup(tempDir);
-    return formatExecutionResult(result.success, result.output || result.error, startTime, result);
-  } catch (error: any) {
-    return formatExecutionResult(false, error.message, startTime);
+  // JS code runs inside Worker for isolation
+  if (language === CodeBlockLanguage.JAVASCRIPT) {
+    return await runJsInWorker(code, timeoutMs, startTime);
   }
+
+  // Dynamic language execution via child process
+  const config = LANGUAGE_CONFIGS[language];
+  if (!config) throw new Error(`Unsupported code block language: ${language}`);
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "code-exec-"));
+  const sourceFile = path.join(tempDir, `code${config.fileExtension}`);
+  const compiledFile = path.join(tempDir, "output");
+
+  await fs.writeFile(sourceFile, code, "utf-8");
+
+  let execCommand = config.command;
+  let execArgs: string[] = [];
+
+  if (config.needsCompilation) {
+    const compileResult = await runProcess(
+      config.compileCommand!,
+      config.compileArgs!(sourceFile, compiledFile),
+      timeoutMs,
+      memoryLimitKB
+    );
+    if (!compileResult.success) {
+      await cleanup(tempDir);
+      throw new Error(`Compilation failed:\n${compileResult.error}`);
+    }
+    execCommand = compiledFile;
+    execArgs = config.runArgs ? config.runArgs(sourceFile) : [];
+  } else {
+    execArgs = config.runArgs!(sourceFile);
+  }
+
+  const result = await runProcess(execCommand, execArgs, timeoutMs, memoryLimitKB, cpuTimeMs, input);
+  if (result.error) {
+    throw new Error(result.error);
+  }
+
+  await cleanup(tempDir);
+  return formatExecutionResult(result.success, result.output || result.error, startTime, result);
 };
 
 const runJsInWorker = (code: string, timeoutMs: number, startTime?: number): Promise<CodeExecutionResult> => {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      `
+    const workerCode = `
       const { parentPort } = require('worker_threads');
-      try {
-        const result = (async () => { ${code} })();
-        Promise.resolve(result).then(res => parentPort.postMessage({ success: true, result: res }))
-                                .catch(err => parentPort.postMessage({ success: false, error: err.message }));
-      } catch (err) {
-        parentPort.postMessage({ success: false, error: err.message });
-      }
-    `,
-      { eval: true }
-    );
+
+      (async () => {
+        try {
+          let output = '';
+          const originalLog = console.log;
+          console.log = (...args) => {
+            output += args.join(' ') + '\\n';
+            originalLog(...args);
+          };
+
+          // run user code in isolated scope
+          let result;
+          try {
+            result = await (async () => {
+              ${code}
+            })();
+          } catch (err) {
+            parentPort.postMessage({ success: false, error: err.message });
+            return;
+          }
+
+          parentPort.postMessage({ success: true, result, output });
+        } catch (err) {
+          parentPort.postMessage({ success: false, error: err.message });
+        }
+      })();
+    `;
+    const worker = new Worker(workerCode, { eval: true });
 
     const timeout = setTimeout(() => {
       worker.terminate();
