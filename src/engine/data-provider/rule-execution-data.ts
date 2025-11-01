@@ -19,15 +19,15 @@ export const getVipMembershipInviteData = async (email: string): Promise<SendHtt
     "X-Organization-Id": "00000000-0000-0000-0000-000000000000",
   },
   body: {
+    appName: "chainit",
     type: "MEMBERSHIP",
     email,
-    orgId: "00000000-0000-0000-0000-000000000000",
-    appName: "KYC",
-    roleIds: [17],
-    groupIds: ["7dc6184e-2839-425d-8b69-200714b3a1a1"],
-    jobTitle: "MEMBERSHIP",
     lastName: "{{ $.input.firstName }}",
     firstName: "{{ $.input.lastName }}",
+    orgId: "00000000-0000-0000-0000-000000000000",
+    roleIds: [17],
+    jobTitle: "MEMBERSHIP",
+    groupIds: ["d5fdacf6-7932-4ba1-a8ba-2b7fb5407219"], // VIP Group ID
   },
 });
 
