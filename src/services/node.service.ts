@@ -22,7 +22,7 @@ import { getWorkflowById } from "./workflow.service";
 
 export async function createNode(data: CreateNodeRecord): Promise<Node> {
   try {
-    const { workflow_id, type, name, configuration, ...rest } = data;
+    const { workflow_id, type, name, description, configuration, ...rest } = data;
     await getWorkflowById(workflow_id);
 
     const prevNode =
@@ -39,6 +39,7 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
         workflow_id,
         type,
         name,
+        description,
         parent_id: rest.group_id || undefined,
         config: configuration as JsonConfig,
         template_id: templateId,
@@ -83,12 +84,11 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           workflow_id,
           source: newNode.id,
           target: rest.next_node_id,
-          condition:
-            newNode.type === NodeType.CONDITIONAL
-              ? NodeEdgesCondition.ON_TRUE
-              : newNode.type === NodeType.SWITCH
-              ? "case_1"
-              : NodeEdgesCondition.NONE,
+          condition: [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(newNode.type as NodeType)
+            ? NodeEdgesCondition.ON_TRUE
+            : newNode.type === NodeType.SWITCH
+            ? "case_1"
+            : NodeEdgesCondition.NONE,
           group_id: rest.group_id || undefined,
         });
       } else {
@@ -113,12 +113,11 @@ export async function createNode(data: CreateNodeRecord): Promise<Node> {
           workflow_id,
           source: newNode.id,
           target: rest.next_node_id,
-          condition:
-            newNode.type === NodeType.CONDITIONAL
-              ? NodeEdgesCondition.ON_TRUE
-              : newNode.type === NodeType.SWITCH
-              ? "case_1"
-              : NodeEdgesCondition.NONE,
+          condition: [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(newNode.type as NodeType)
+            ? NodeEdgesCondition.ON_TRUE
+            : newNode.type === NodeType.SWITCH
+            ? "case_1"
+            : NodeEdgesCondition.NONE,
           group_id: rest.group_id || undefined,
         },
         false
@@ -176,6 +175,7 @@ export async function updateNode(nodeId: string, data: UpdateNodeRecord): Promis
       where: { id: nodeId },
       data: {
         name: data.name ?? existingNode.name,
+        description: data.description ?? existingNode.description,
         config: (data.configuration as JsonConfig) ?? existingNode.config,
         retry_attempts: data.retry_attempts ?? undefined,
         retry_delay_ms: data.retry_delay_ms ?? undefined,
@@ -257,9 +257,13 @@ async function getNextNodeEdge(
     const isParentGroup = currentNode.parent_id && edge.group_id !== currentNode.id;
 
     if (isNormalGroup || isParentGroup) {
-      if (currentNode.type === NodeType.CONDITIONAL && edge.condition === NodeEdgesCondition.ON_TRUE) return true;
       if (
-        ![NodeType.CONDITIONAL, NodeType.SWITCH].includes(currentNode.type as NodeType) &&
+        [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(currentNode.type as NodeType) &&
+        edge.condition === NodeEdgesCondition.ON_TRUE
+      )
+        return true;
+      if (
+        ![NodeType.CONDITIONAL, NodeType.SWITCH, NodeType.RULE_EXECUTOR].includes(currentNode.type as NodeType) &&
         edge.condition === NodeEdgesCondition.NONE
       )
         return true;
@@ -286,12 +290,11 @@ async function reconnectNodeEdges(
       workflow_id: currentNode.workflow_id,
       source: prevNodeEdge.source,
       target: nextNodeEdge.target,
-      condition:
-        prevNodeEdge.sourceNode?.["type"] == NodeType.CONDITIONAL
-          ? NodeEdgesCondition.ON_TRUE
-          : prevNodeEdge.sourceNode?.["type"] == NodeType.SWITCH
-          ? "case_1"
-          : NodeEdgesCondition.NONE,
+      condition: [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(prevNodeEdge.sourceNode?.["type"] as NodeType)
+        ? NodeEdgesCondition.ON_TRUE
+        : prevNodeEdge.sourceNode?.["type"] == NodeType.SWITCH
+        ? "case_1"
+        : NodeEdgesCondition.NONE,
       group_id: prevNodeEdge.group_id ?? null,
       expression: prevNodeEdge.expression ?? undefined,
     };
@@ -323,13 +326,16 @@ async function getSwitchCaseEdgeExpression(
 }
 
 async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | null): Promise<void> {
-  if (data.type == NodeType.CONDITIONAL && !data.configuration && !data.configuration?.["condtions"])
+  if (data.type == NodeType.CONDITIONAL && !data.configuration && !data.configuration?.["conditions"])
     throw new Error("At least one condition needed");
-  if (data.type == NodeType.CONDITIONAL && !data.configuration && !data.configuration?.["map"])
+  if (data.type == NodeType.MAP && !data.configuration && !data.configuration?.["mapping"])
     throw new Error("At least one map rule needed");
-  if (prevNode?.type == NodeType.CONDITIONAL && data.condition == NodeEdgesCondition.NONE) {
+  if (
+    [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(prevNode?.type as NodeType) &&
+    data.condition == NodeEdgesCondition.NONE
+  ) {
     throw new Error(
-      `Condition must be ('${NodeEdgesCondition.ON_TRUE}' or '${NodeEdgesCondition.ON_FALSE}') for Conditional parent node`
+      `Condition must be ('${NodeEdgesCondition.ON_TRUE}' or '${NodeEdgesCondition.ON_FALSE}') for ${prevNode?.type} parent node`
     );
   }
   if (prevNode?.type == NodeType.SWITCH && data.condition) {
@@ -345,7 +351,7 @@ async function checkNodeValidations(data: CreateNodeRecord, prevNode: Node | nul
   }
 
   if (
-    ![NodeType.CONDITIONAL, NodeType.SWITCH].includes(prevNode?.type as NodeType) &&
+    ![NodeType.CONDITIONAL, NodeType.SWITCH, NodeType.RULE_EXECUTOR].includes(prevNode?.type as NodeType) &&
     data.condition &&
     data.condition != NodeEdgesCondition.NONE
   ) {

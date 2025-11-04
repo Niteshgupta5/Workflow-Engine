@@ -19,20 +19,25 @@ export enum TriggerType {
   HTTP_REQUEST = "http_request",
 }
 
+export enum EventName {
+  KYC_INITIATED = "kyc.initiated",
+}
+
 export enum NodeType {
   // Action
   SEND_EMAIL = "send_email",
   SEND_HTTP_REQUEST = "send_http_request",
   UPDATE_DATABASE = "update_database",
+  // VIP_MEMBERSHIP_INVITE = "vip_membership_invite",
+  // PEP_CHECK_INVITE = "pep_check_invite",
 
   // Flow Control
-
   CONDITIONAL = "conditional",
   LOOP = "loop",
   SWITCH = "switch",
+  RULE_EXECUTOR = "rule_executor",
 
   // Data Transformation
-
   MAP = "map",
   RENAME = "rename",
   REMOVE = "remove",
@@ -42,13 +47,15 @@ export enum NodeType {
   GROUP = "group",
   CONCAT = "concat",
   FORMULA = "formula",
-  CODE_BLOCK = "code_block",
   CONVERT_TYPE = "convert_type",
   MERGE = "merge",
   SPLIT = "split",
   DATE_FORMAT = "date_format",
   DATE_OPERATION = "date_operation",
   TIMESTAMP = "timestamp",
+
+  // Utilities
+  CODE_BLOCK = "code_block",
 }
 
 export type SwitchCaseCondition = `case_${number}`;
@@ -83,6 +90,7 @@ export enum CodeBlockLanguage {
   PYTHON = "python",
 }
 export enum NodeCategoryType {
+  TRIGGER = "trigger",
   ACTION = "action",
   FLOW_CONTROL = "flow_control",
   DATA_TRANSFORM = "data_transform",

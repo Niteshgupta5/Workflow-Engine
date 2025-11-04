@@ -188,16 +188,20 @@ async function validateOutgoingEdge(data: CreateNodeEdgeRecord): Promise<void> {
     where: { source: data.source },
   });
 
-  if (![NodeType.CONDITIONAL, NodeType.LOOP, NodeType.SWITCH].includes(sourceNode.type as NodeType)) {
+  if (
+    ![NodeType.CONDITIONAL, NodeType.LOOP, NodeType.SWITCH, NodeType.RULE_EXECUTOR].includes(
+      sourceNode.type as NodeType
+    )
+  ) {
     if (existingEdges.length > 0) {
       throw new Error(`Action node ${data.source} already has an outgoing edge — only one allowed.`);
     }
-  } else if (sourceNode.type == NodeType.CONDITIONAL) {
+  } else if ([NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(sourceNode.type as NodeType)) {
     if (data.condition == NodeEdgesCondition.NONE)
       throw new Error(`Condition '${NodeEdgesCondition.NONE}' is not allowed when the source node is conditional.`);
     if (existingEdges.some((edge) => edge.condition === data.condition)) {
       throw new Error(
-        `Conditional node ${data.source} already has an outgoing edge for condition '${data.condition}'.`
+        `${sourceNode.type} node ${data.source} already has an outgoing edge for condition '${data.condition}'.`
       );
     }
     if (existingEdges.length >= 2) {

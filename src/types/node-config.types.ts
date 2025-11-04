@@ -55,6 +55,10 @@ export type SwitchConfig = {
   expression: string;
 };
 
+export type RuleExecutorConfig = {
+  ruleset_id: string;
+};
+
 // =============================
 // Transform Node Configs
 // =============================
@@ -155,6 +159,10 @@ export type TimestampNodeConfig = {
   operation?: TimestampOperation;
 };
 
+export type FormulaNodeConfig = {
+  expression: string;
+};
+
 // =============================
 // Utility Node Configs
 // =============================
@@ -164,22 +172,22 @@ export type CodeBlockNodeConfig = {
   expression: string;
 };
 
-export type FormulaNodeConfig = {
-  expression: string;
-};
-
 // =============================
 // Node Config Map
 // =============================
 export type NodeConfigMap = {
+  // Action Nodes
   [NodeType.SEND_EMAIL]: SendEmailConfig;
   [NodeType.SEND_HTTP_REQUEST]: SendHttpRequestConfig;
   [NodeType.UPDATE_DATABASE]: UpdateDatabaseConfig;
 
+  // Flow Control Nodes
   [NodeType.LOOP]: LoopConfig;
   [NodeType.CONDITIONAL]: { conditions: ConditionalConfig[] };
   [NodeType.SWITCH]: { switch_cases: SwitchConfig[] };
+  [NodeType.RULE_EXECUTOR]: RuleExecutorConfig;
 
+  // Data Transformation Nodes
   [NodeType.MAP]: MappingNodeConfig;
   [NodeType.RENAME]: RenameNodeConfig;
   [NodeType.REMOVE]: RemoveNodeConfig;
@@ -196,6 +204,7 @@ export type NodeConfigMap = {
   [NodeType.CONCAT]: ConcatNodeConfig;
   [NodeType.FORMULA]: FormulaNodeConfig;
 
+  // Utility Nodes
   [NodeType.CODE_BLOCK]: CodeBlockNodeConfig;
 };
 

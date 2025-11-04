@@ -7,3 +7,4 @@ export * from "./execution.types";
 export * from "./utilities.type";
 export * from "./node-response.types";
 export * from "./node-config.types";
+export * from "./node-category.types";

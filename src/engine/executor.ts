@@ -119,7 +119,7 @@ export async function executeTrigger(
         const eventConfig = config[TriggerType.EVENT];
         if (!eventConfig) throw new Error("Invalid EVENT configuration");
 
-        await httpRequest(eventConfig.method, `${process.env.BASE_URL}/workflow/${trigger.workflow_id}/run`, {
+        await httpRequest(eventConfig.method, eventConfig.endpoint, {
           executionId: execution.id,
           context: {
             eventName: eventConfig.event_name,

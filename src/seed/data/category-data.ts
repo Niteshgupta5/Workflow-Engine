@@ -21,4 +21,9 @@ export const NODE_CATEGORIES = [
     name: NodeCategoryType.UTILITIES,
     description: "Utility nodes provide control and data manipulation within the workflow.",
   },
+  {
+    id: "00000000-0000-0000-0000-000000000005",
+    name: NodeCategoryType.TRIGGER,
+    description: "Starts workflows based on events or schedules.",
+  },
 ];

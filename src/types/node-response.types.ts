@@ -43,6 +43,8 @@ export type SwitchResponse = {
   matchedCaseId: string | null;
 };
 
+export type RuleExecutorResponse = Omit<ExecutionResult, "nextNodeId"> & { ruleEvaluationResult: boolean };
+
 // =============================
 // Data Transformation Nodes
 // =============================
@@ -139,6 +141,7 @@ export type NodeResponseMap = {
   [NodeType.CONDITIONAL]: ConditionalResponse;
   [NodeType.LOOP]: LoopResponse;
   [NodeType.SWITCH]: SwitchResponse;
+  [NodeType.RULE_EXECUTOR]: RuleExecutorResponse;
 
   [NodeType.MAP]: MapResponse;
   [NodeType.RENAME]: RenameResponse;

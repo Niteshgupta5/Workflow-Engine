@@ -3,7 +3,7 @@ import { NodeCategoryType } from "../types";
 import { NODE_CATEGORIES, NODE_TEMPLATES } from "./data";
 
 const SEED_NAME = "NodeTemplateSeed";
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 export async function seedNodeTemplates() {
   const existing = await prisma.seed.findUnique({ where: { name: SEED_NAME } });

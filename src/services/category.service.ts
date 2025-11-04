@@ -1,7 +1,7 @@
 import { NodeCategory } from "@prisma/client";
 import { prisma } from "../config";
 import { NODE_CATEGORY_MAPPER } from "../constants";
-import { NodeType } from "../types";
+import { NodeCategoryWithTemplatesDTO, NodeType } from "../types";
 
 export async function getCategoryByNodeType(type: NodeType): Promise<NodeCategory> {
   try {
@@ -11,6 +11,18 @@ export async function getCategoryByNodeType(type: NodeType): Promise<NodeCategor
     return category;
   } catch (error) {
     console.error("ERROR: Failed to Fetch node category", error);
+    throw error;
+  }
+}
+
+export async function getAllCategoriesWithTemplates(): Promise<NodeCategoryWithTemplatesDTO[]> {
+  try {
+    const categories = await prisma.nodeCategory.findMany({
+      select: { id: true, name: true, description: true, created_at: true, updated_at: true, NodeTemplate: true },
+    });
+    return categories;
+  } catch (error) {
+    console.error("ERROR: Failed to Fetch all node categories", error);
     throw error;
   }
 }

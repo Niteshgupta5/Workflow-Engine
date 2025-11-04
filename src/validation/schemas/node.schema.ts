@@ -10,6 +10,7 @@ export const nodeSchema: { body: ObjectSchema<CreateNodeRecord> } = {
       .valid(...Object.values(NodeType))
       .required(),
     name: Joi.string().min(3).max(255).required(),
+    description: Joi.string().optional(),
     configuration: nodeConfigurationSchema.required(),
     prev_node_id: Joi.string().uuid().optional().default(START_NODE_ID),
     next_node_id: Joi.string().uuid().optional(),
@@ -40,6 +41,7 @@ export const updateNodeSchema: { body: ObjectSchema<UpdateNodeRecord> } = {
       .valid(...Object.values(NodeType))
       .required(),
     name: Joi.string().min(3).max(255).required(),
+    description: Joi.string().optional(),
     configuration: nodeConfigurationSchema.required(),
     retry_attempts: Joi.number().integer().allow(null).optional(),
     retry_delay_ms: Joi.number().integer().allow(null).optional(),

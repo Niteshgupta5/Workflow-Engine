@@ -469,13 +469,13 @@ export const resolveNextNodeId = async <T extends NodeType>(
   nodeResult: NodeResponse<T>
 ): Promise<string | null> => {
   switch (type) {
-    case NodeType.CONDITIONAL: {
-      const { expressionResult } = nodeResult as NodeResponse<NodeType.CONDITIONAL>;
-      return getNextNodeId(
-        nodeId,
-        expressionResult ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE,
-        groupId
-      );
+    case NodeType.CONDITIONAL:
+    case NodeType.RULE_EXECUTOR: {
+      const { expressionResult, ruleEvaluationResult } = nodeResult as NodeResponse<
+        NodeType.CONDITIONAL | NodeType.RULE_EXECUTOR
+      >;
+      const result = type === NodeType.CONDITIONAL ? expressionResult : ruleEvaluationResult;
+      return getNextNodeId(nodeId, result ? NodeEdgesCondition.ON_TRUE : NodeEdgesCondition.ON_FALSE, groupId);
     }
 
     case NodeType.SWITCH: {

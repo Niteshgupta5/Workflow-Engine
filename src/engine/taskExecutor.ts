@@ -31,6 +31,7 @@ import {
   AggregateResponse,
   FormulaResponse,
   ConcatNodeConfig,
+  RuleExecutorResponse,
 } from "../types";
 import {
   evaluateCondition,
@@ -55,6 +56,7 @@ import {
   setNestedValue,
 } from "./node-task";
 import _ from "lodash";
+import { getRuleExecutionData } from "./data-provider";
 
 // Generic input type with properly constrained node.config
 export type NodeExecutorInput<T extends NodeType> = {
@@ -125,6 +127,14 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
 
   [NodeType.SWITCH]: async ({ node, context }): Promise<SwitchResponse> => {
     return await handleSwitchNode(node, context);
+  },
+
+  [NodeType.RULE_EXECUTOR]: async ({ node, context }): Promise<RuleExecutorResponse> => {
+    const { ruleset_id } = node.config;
+    const { url, method, headers, body } = await getRuleExecutionData(ruleset_id);
+    const res = await httpRequest(method, url, body, headers);
+    const ruleEvaluationResult = res.evaluationSummary.passed;
+    return { ruleEvaluationResult };
   },
 
   // =============================
@@ -479,6 +489,25 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     };
   },
 
+  [NodeType.FORMULA]: async ({
+    node: {
+      config: { expression },
+    },
+    context,
+  }): Promise<FormulaResponse> => {
+    const resolvedExpression = resoleTemplateAndNormalize(expression, context, true);
+
+    const result = new Function(`return (${resolvedExpression});`)();
+    return {
+      formula_result: result,
+      original_data: expression,
+    };
+  },
+
+  // =============================
+  // Utility Nodes
+  // =============================
+
   [NodeType.CODE_BLOCK]: async ({ node, context }): Promise<CodeBlockResponse> => {
     const data = resoleTemplateAndNormalize(node.config, context);
     const { expression, language } = node.config;
@@ -500,21 +529,6 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
     return {
       code_result: result,
       original_data: data,
-    };
-  },
-
-  [NodeType.FORMULA]: async ({
-    node: {
-      config: { expression },
-    },
-    context,
-  }): Promise<FormulaResponse> => {
-    const resolvedExpression = resoleTemplateAndNormalize(expression, context, true);
-
-    const result = new Function(`return (${resolvedExpression});`)();
-    return {
-      formula_result: result,
-      original_data: expression,
     };
   },
 };

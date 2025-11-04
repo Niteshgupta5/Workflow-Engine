@@ -4,6 +4,7 @@ import { CreateWorkflowRecord } from "../types";
 
 export async function createWorkflow(data: CreateWorkflowRecord): Promise<Workflow> {
   try {
+    await checkDuplicateWorkflowName(data.name);
     return prisma.workflow.create({ data });
   } catch (error) {
     console.error("ERROR: ON CREATE WORKFLOW", error);
@@ -13,10 +14,24 @@ export async function createWorkflow(data: CreateWorkflowRecord): Promise<Workfl
 
 export async function updateWorkflow(id: string, data: CreateWorkflowRecord): Promise<Workflow> {
   try {
+    await checkDuplicateWorkflowName(data.name, id);
     await getWorkflowById(id);
     return prisma.workflow.update({ where: { id }, data });
   } catch (error) {
     console.error("ERROR: ON UPDATE WORKFLOW", error);
+    throw error;
+  }
+}
+
+export async function checkDuplicateWorkflowName(name: string, id?: string): Promise<boolean> {
+  try {
+    const existingWorkflow = await prisma.workflow.findFirst({ where: { name, NOT: id ? { id } : undefined } });
+    if (existingWorkflow) {
+      throw new Error("Workflow with the same name already exists");
+    }
+    return true;
+  } catch (error) {
+    console.error("ERROR: ON CHECK DUPLICATE WORKFLOW NAME", error);
     throw error;
   }
 }

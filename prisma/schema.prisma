@@ -44,6 +44,7 @@ model Node {
     workflow_id    String
     type           String
     name           String
+    description    String?
     parent_id      String?
     created_at     DateTime @default(now())
     config         Json
