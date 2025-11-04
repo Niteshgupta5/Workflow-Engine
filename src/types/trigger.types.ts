@@ -1,4 +1,4 @@
-import { HttpMethod, TriggerType } from "./enums";
+import { EventName, HttpMethod, TriggerType } from "./enums";
 
 export interface CreateTriggerRecord {
   workflow_id: string;
@@ -35,7 +35,7 @@ export interface TriggerConfiguration {
     authentication?: AuthConfig;
   };
   [TriggerType.EVENT]?: {
-    event_name: string;
+    event_name: EventName;
     method: HttpMethod;
     endpoint: string;
     authentication?: AuthConfig;

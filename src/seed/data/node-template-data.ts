@@ -20,6 +20,18 @@ export const NODE_TEMPLATES = [
     category: NodeCategoryType.ACTION,
     description: "Update or insert data into a database table",
   },
+  {
+    name: "VIP Membership Invite",
+    type: NodeType.VIP_MEMBERSHIP_INVITE,
+    category: NodeCategoryType.ACTION,
+    description: "Send an invitation to VIP membership",
+  },
+  {
+    name: "PEP Check Invite",
+    type: NodeType.PEP_CHECK_INVITE,
+    category: NodeCategoryType.ACTION,
+    description: "Send an invitation for Politically Exposed Person (PEP) check",
+  },
 
   // Flow Control
   {

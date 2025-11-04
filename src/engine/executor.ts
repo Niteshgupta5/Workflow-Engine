@@ -6,7 +6,7 @@ import {
   getWorkflowById,
   updateExecution,
 } from "../services";
-import { ExecutionStatus, ExtendedNode, NodeType, TriggerConfiguration, TriggerType } from "../types";
+import { ExecutionStatus, ExtendedNode, HttpMethod, NodeType, TriggerConfiguration, TriggerType } from "../types";
 import { httpRequest } from "../utils";
 import { runNode } from "./node-runner";
 
@@ -58,13 +58,16 @@ export async function runWorkflow(
         completed_at: new Date(),
         context,
       });
-    } catch (error) {
+      !currentNode && console.log(`==== Execution ${executionId} Completed ====`);
+    } catch (error: any) {
       await updateExecution(executionId, {
         status: ExecutionStatus.FAILED,
         context,
       });
-      console.log(`❌ Execution ${executionId} failed`);
-      throw error;
+      console.log(`❌ Execution ${executionId} failed`, error.response?.data);
+      const errorMessage =
+        error.response?.data?.message || error.response?.data?.error || error.message || "Unknown Error";
+      throw new Error(`${errorMessage}`);
     }
   }
 }
@@ -119,7 +122,7 @@ export async function executeTrigger(
         const eventConfig = config[TriggerType.EVENT];
         if (!eventConfig) throw new Error("Invalid EVENT configuration");
 
-        await httpRequest(eventConfig.method, eventConfig.endpoint, {
+        await httpRequest(HttpMethod.POST, `${process.env.BASE_URL}/workflow/${trigger.workflow_id}/run`, {
           executionId: execution.id,
           context: {
             eventName: eventConfig.event_name,
@@ -151,7 +154,7 @@ export async function executeTrigger(
       message: "Workflow execution started",
       executionId: execution.id,
     };
-  } catch (error) {
+  } catch (error: any) {
     await updateExecution(execution.id, {
       status: ExecutionStatus.FAILED,
       context: {
@@ -159,7 +162,13 @@ export async function executeTrigger(
       },
       completed_at: new Date(),
     });
-    console.error("Error: In Trigger Execution", error);
-    throw error;
+    console.error("Error: In Trigger Execution");
+    const errorMessage =
+      error.response?.data?.message || error.response?.data?.error || error.message || "Unknown Error";
+    return {
+      status: error.response?.status || 500,
+      error: `${errorMessage}`,
+      executionId: execution.id,
+    };
   }
 }

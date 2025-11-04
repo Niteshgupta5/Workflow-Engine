@@ -59,6 +59,14 @@ export type RuleExecutorConfig = {
   ruleset_id: string;
 };
 
+export type VipMembershipInviteConfig = {
+  email: string;
+};
+
+export type PepCheckInviteConfig = {
+  email: string;
+};
+
 // =============================
 // Transform Node Configs
 // =============================
@@ -180,6 +188,8 @@ export type NodeConfigMap = {
   [NodeType.SEND_EMAIL]: SendEmailConfig;
   [NodeType.SEND_HTTP_REQUEST]: SendHttpRequestConfig;
   [NodeType.UPDATE_DATABASE]: UpdateDatabaseConfig;
+  [NodeType.VIP_MEMBERSHIP_INVITE]: VipMembershipInviteConfig;
+  [NodeType.PEP_CHECK_INVITE]: PepCheckInviteConfig;
 
   // Flow Control Nodes
   [NodeType.LOOP]: LoopConfig;

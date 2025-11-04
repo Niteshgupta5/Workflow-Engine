@@ -31,6 +31,14 @@ export type UpdateDatabaseResponse = {
   status: "success" | "failure";
 };
 
+export type VipMembershipInviteResponse = {
+  response: unknown;
+};
+
+export type PepCheckInviteResponse = {
+  response: unknown;
+};
+
 // =============================
 // Flow Control Nodes
 // =============================
@@ -137,6 +145,8 @@ export type NodeResponseMap = {
   [NodeType.SEND_EMAIL]: SendEmailResponse;
   [NodeType.SEND_HTTP_REQUEST]: SendHttpRequestResponse;
   [NodeType.UPDATE_DATABASE]: UpdateDatabaseResponse;
+  [NodeType.VIP_MEMBERSHIP_INVITE]: VipMembershipInviteResponse;
+  [NodeType.PEP_CHECK_INVITE]: PepCheckInviteResponse;
 
   [NodeType.CONDITIONAL]: ConditionalResponse;
   [NodeType.LOOP]: LoopResponse;

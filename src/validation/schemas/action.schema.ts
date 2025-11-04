@@ -1,6 +1,13 @@
 import Joi, { ObjectSchema } from "joi";
 import { PATTERNS } from "../../constants";
-import { HttpMethod, SendEmailConfig, SendHttpRequestConfig, UpdateDatabaseConfig } from "../../types";
+import {
+  HttpMethod,
+  PepCheckInviteConfig,
+  SendEmailConfig,
+  SendHttpRequestConfig,
+  UpdateDatabaseConfig,
+  VipMembershipInviteConfig,
+} from "../../types";
 
 export const sendEmailSchema: { body: ObjectSchema<SendEmailConfig> } = {
   body: Joi.object({
@@ -26,5 +33,17 @@ export const updateDatabaseSchema: { body: ObjectSchema<UpdateDatabaseConfig> } 
   body: Joi.object({
     table: Joi.string().required(),
     data: Joi.object().required(),
+  }),
+};
+
+export const vipMembershipInviteSchema: { body: ObjectSchema<VipMembershipInviteConfig> } = {
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
+  }),
+};
+
+export const pepCheckInviteSchema: { body: ObjectSchema<PepCheckInviteConfig> } = {
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
   }),
 };

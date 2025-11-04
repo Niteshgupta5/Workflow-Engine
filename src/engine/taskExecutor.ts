@@ -32,6 +32,8 @@ import {
   FormulaResponse,
   ConcatNodeConfig,
   RuleExecutorResponse,
+  VipMembershipInviteResponse,
+  PepCheckInviteResponse,
 } from "../types";
 import {
   evaluateCondition,
@@ -56,7 +58,7 @@ import {
   setNestedValue,
 } from "./node-task";
 import _ from "lodash";
-import { getRuleExecutionData } from "./data-provider";
+import { getPepCheckInviteData, getRuleExecutionData, getVipMembershipInviteData } from "./data-provider";
 
 // Generic input type with properly constrained node.config
 export type NodeExecutorInput<T extends NodeType> = {
@@ -112,6 +114,24 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
       updated_count: Object.keys(data).length,
     };
     return response;
+  },
+
+  [NodeType.VIP_MEMBERSHIP_INVITE]: async ({ context, node }): Promise<VipMembershipInviteResponse> => {
+    const config = resoleTemplateAndNormalize(node.config, context);
+    const { email } = config;
+    const { url, method, headers, body } = await getVipMembershipInviteData(email);
+    const resolvedBody = resoleTemplateAndNormalize(body, context);
+    const response = await httpRequest(method, url, resolvedBody, headers);
+    return { response };
+  },
+
+  [NodeType.PEP_CHECK_INVITE]: async ({ context, node }): Promise<PepCheckInviteResponse> => {
+    const config = resoleTemplateAndNormalize(node.config, context);
+    const { email } = config;
+    const { url, method, headers, body } = await getPepCheckInviteData(email);
+    const resolvedBody = resoleTemplateAndNormalize(body, context);
+    const response = await httpRequest(method, url, resolvedBody, headers);
+    return { response };
   },
 
   // =============================

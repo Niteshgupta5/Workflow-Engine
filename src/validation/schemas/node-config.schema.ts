@@ -1,6 +1,12 @@
 import Joi, { AlternativesSchema } from "joi";
 import { NodeConfiguration, NodeType } from "../../types";
-import { sendEmailSchema, sendHttpRequest, updateDatabaseSchema } from "./action.schema";
+import {
+  pepCheckInviteSchema,
+  sendEmailSchema,
+  sendHttpRequest,
+  updateDatabaseSchema,
+  vipMembershipInviteSchema,
+} from "./action.schema";
 import {
   conditionSchema,
   loopConfigurationSchema,
@@ -37,6 +43,14 @@ export const nodeConfigurationSchema: AlternativesSchema<NodeConfiguration> = Jo
   {
     is: NodeType.UPDATE_DATABASE,
     then: updateDatabaseSchema.body.required(),
+  },
+  {
+    is: NodeType.VIP_MEMBERSHIP_INVITE,
+    then: vipMembershipInviteSchema.body.required(),
+  },
+  {
+    is: NodeType.PEP_CHECK_INVITE,
+    then: pepCheckInviteSchema.body.required(),
   },
   {
     is: NodeType.LOOP,

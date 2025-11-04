@@ -20,7 +20,8 @@ export enum TriggerType {
 }
 
 export enum EventName {
-  KYC_INITIATED = "kyc.initiated",
+  KYC_INVITATION_COMPLETION = "kyc.invitation.completion",
+  PEP_CHECK_TASK_COMPLETION = "pep_check.task.completion",
 }
 
 export enum NodeType {
@@ -28,8 +29,8 @@ export enum NodeType {
   SEND_EMAIL = "send_email",
   SEND_HTTP_REQUEST = "send_http_request",
   UPDATE_DATABASE = "update_database",
-  // VIP_MEMBERSHIP_INVITE = "vip_membership_invite",
-  // PEP_CHECK_INVITE = "pep_check_invite",
+  VIP_MEMBERSHIP_INVITE = "vip_membership_invite",
+  PEP_CHECK_INVITE = "pep_check_invite",
 
   // Flow Control
   CONDITIONAL = "conditional",
