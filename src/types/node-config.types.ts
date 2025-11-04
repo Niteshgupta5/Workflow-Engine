@@ -57,14 +57,15 @@ export type SwitchConfig = {
 
 export type RuleExecutorConfig = {
   ruleset_id: string;
+  user_id?: string;
 };
 
 export type VipMembershipInviteConfig = {
-  email: string;
+  // email: string;
 };
 
 export type PepCheckInviteConfig = {
-  email: string;
+  // email: string;
 };
 
 // =============================

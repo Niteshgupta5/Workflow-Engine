@@ -1,6 +1,6 @@
 import { Trigger } from "@prisma/client";
 import { prisma } from "../config";
-import { CreateTriggerRecord, HttpMethod, JsonConfig, TriggerType, UpdateTriggerRecord } from "../types";
+import { CreateTriggerRecord, EventName, HttpMethod, JsonConfig, TriggerType, UpdateTriggerRecord } from "../types";
 import { isNilOrEmpty } from "../utils";
 
 export async function createTrigger(data: CreateTriggerRecord): Promise<Trigger> {
@@ -106,6 +106,19 @@ export async function getAllScheduleTriggers(): Promise<(Trigger & { configurati
     return triggers.map((trigger) => ({ ...trigger, configuration: trigger.configuration as JsonConfig }));
   } catch (error) {
     console.error("ERROR: TO GET ALL SCHEDULE TRIGGERS", error);
+    throw error;
+  }
+}
+
+export async function getAllTriggersByEventName(eventName: EventName): Promise<Trigger[]> {
+  try {
+    const triggers = await prisma.$queryRaw<Trigger[]>`
+      SELECT * FROM "triggers"
+      WHERE configuration -> 'event' ->> 'event_name' = ${eventName};
+    `;
+    return triggers;
+  } catch (error) {
+    console.error("ERROR: TO GET ALL EVENT TRIGGERS BY EVENT NAME", error);
     throw error;
   }
 }
