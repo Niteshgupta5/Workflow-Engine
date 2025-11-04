@@ -536,12 +536,14 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
       throw new Error("No code or expression provided");
     }
 
+    const pasredExpression = JSON.parse(JSON.stringify(expression));
+
     const execContext = {
       ...context,
       data,
       _,
     };
-    const resolvedCode = resoleTemplateAndNormalize(expression, execContext, true);
+    const resolvedCode = resoleTemplateAndNormalize(pasredExpression, execContext, true);
     const result = await executeCodeBlock(resolvedCode, language);
 
     return {
