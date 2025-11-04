@@ -119,18 +119,30 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   [NodeType.VIP_MEMBERSHIP_INVITE]: async ({ context, node }): Promise<VipMembershipInviteResponse> => {
     const config = resoleTemplateAndNormalize(node.config, context);
     const { email } = config;
-    const { url, method, headers, body } = await getVipMembershipInviteData(email || "{{ $.input.email }}");
-    const resolvedBody = resoleTemplateAndNormalize(body, context);
-    const response = await httpRequest(method, url, resolvedBody, headers, true);
+    const data = await getVipMembershipInviteData(email);
+    const resolvedData = resoleTemplateAndNormalize(data, context);
+    const response = await httpRequest(
+      resolvedData.method,
+      resolvedData.url,
+      resolvedData.body,
+      resolvedData.headers,
+      true
+    );
     return { response };
   },
 
   [NodeType.PEP_CHECK_INVITE]: async ({ context, node }): Promise<PepCheckInviteResponse> => {
-    const config = resoleTemplateAndNormalize(node.config, context);
-    const { email } = config;
-    const { url, method, headers, body } = await getPepCheckInviteData(email || "{{ $.input.email }}");
-    const resolvedBody = resoleTemplateAndNormalize(body, context);
-    const response = await httpRequest(method, url, resolvedBody, headers, true);
+    // const config = resoleTemplateAndNormalize(node.config, context);
+    // const { email } = config;
+    const data = await getPepCheckInviteData();
+    const resolvedData = resoleTemplateAndNormalize(data, context);
+    const response = await httpRequest(
+      resolvedData.method,
+      resolvedData.url,
+      resolvedData.body,
+      resolvedData.headers,
+      true
+    );
     return { response };
   },
 

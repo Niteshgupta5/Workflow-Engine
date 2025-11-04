@@ -297,11 +297,12 @@ async function reconnectNodeEdges(
       workflow_id: currentNode.workflow_id,
       source: prevNodeEdge.source,
       target: nextNodeEdge.target,
-      condition: [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(prevNodeEdge.sourceNode?.["type"] as NodeType)
-        ? NodeEdgesCondition.ON_TRUE
-        : prevNodeEdge.sourceNode?.["type"] == NodeType.SWITCH
-        ? "case_1"
-        : NodeEdgesCondition.NONE,
+      // condition: [NodeType.CONDITIONAL, NodeType.RULE_EXECUTOR].includes(prevNodeEdge.sourceNode?.["type"] as NodeType)
+      //   ? NodeEdgesCondition.ON_TRUE
+      //   : prevNodeEdge.sourceNode?.["type"] == NodeType.SWITCH
+      //   ? "case_1"
+      //   : NodeEdgesCondition.NONE,
+      condition: prevNodeEdge.condition,
       group_id: prevNodeEdge.group_id ?? null,
       expression: prevNodeEdge.expression ?? undefined,
     };
