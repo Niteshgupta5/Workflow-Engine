@@ -132,9 +132,9 @@ export const taskExecutors: { [K in NodeType]: NodeExecutorFn<K> } = {
   },
 
   [NodeType.PEP_CHECK_INVITE]: async ({ context, node }): Promise<PepCheckInviteResponse> => {
-    // const config = resoleTemplateAndNormalize(node.config, context);
-    // const { email } = config;
-    const data = await getPepCheckInviteData();
+    const config = resoleTemplateAndNormalize(node.config, context);
+    const { email } = config;
+    const data = await getPepCheckInviteData(email);
     const resolvedData = resoleTemplateAndNormalize(data, context);
     const response = await httpRequest(
       resolvedData.method,
