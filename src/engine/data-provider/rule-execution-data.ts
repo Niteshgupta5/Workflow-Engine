@@ -71,3 +71,13 @@ export const refreshChainItTokenData = async (): Promise<SendHttpRequestConfig> 
     platform: "ADMIN_PORTAL",
   },
 });
+
+export const getBeingIdData = async (userId: string) => ({
+  url: `${process.env.BIT_CORE_SERVER_URL}/users/v1/end-user/users/${userId}/being-id`,
+  method: HttpMethod.GET,
+  headers: {
+    "Bit-Token": `${process.env.CHAINIT_BIT_TOKEN}`,
+    Authorization: `Bearer ${process.env.CHAINIT_API_KEY}`,
+  },
+  body: {},
+});

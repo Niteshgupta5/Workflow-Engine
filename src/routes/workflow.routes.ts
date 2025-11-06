@@ -8,9 +8,10 @@ import {
   getWorkflows,
   updateWorkflow,
 } from "../services";
-import { executeTrigger, runWorkflow } from "../engine";
+import { executeTrigger, getBeingIdData, runWorkflow } from "../engine";
 import { createWorkflowSchema, deleteWorkflowSchema, validateRequest } from "../validation";
-import { CreateWorkflowRecord, IdParameter } from "../types";
+import { CreateWorkflowRecord, EventName, IdParameter } from "../types";
+import { httpRequest } from "../utils";
 
 export const workflowRouter = Router();
 
@@ -82,6 +83,11 @@ workflowRouter.post("/:workflowId/execute", async (req, res) => {
 
 workflowRouter.post("/run", async (req, res) => {
   const { eventName, data } = req.body;
+  if (eventName == EventName.KYC_INVITATION_COMPLETION) {
+    const { url, method, headers, body } = await getBeingIdData(data.userId);
+    const userData = await httpRequest(method, url, body, headers, true);
+    data["beingId"] = userData.level;
+  }
   const triggers = await getAllTriggersByEventName(eventName);
   triggers.forEach(async (trigger) => {
     await executeTrigger(trigger.id, data || {});
