@@ -1,12 +1,12 @@
 {
   "name": "workflow-engine",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src --ext ts --exec node --es-module-specifier-resolution=node --loader ts-node/esm src/index.ts",
-    "start": "node src/index.ts",
+    "start": "node dist/index.js",
     "build": "tsc",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev"
