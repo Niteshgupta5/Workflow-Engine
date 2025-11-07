@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 4000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 app.listen(PORT, async () => {
+  console.log("BASE_URL==>", process.env.BASE_URL);
   await seedRunner();
   console.log(`  =================================
   ======= ENV: ${NODE_ENV} ========

@@ -81,6 +81,7 @@ export async function executeTrigger(
   message?: string;
   error?: string;
 }> {
+  console.log("BASE_URL==>", process.env.BASE_URL);
   const trigger = await getTriggerById(triggerId);
   const config = trigger.configuration as TriggerConfiguration;
 
